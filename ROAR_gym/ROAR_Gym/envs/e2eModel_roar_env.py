@@ -88,6 +88,8 @@ class ROARppoEnvE2E(ROAREnv):
         self.crash_tol=5
         self.reward_tol=5
         self.end_check=False
+        self.reset_by_going_back=True
+        self.death_line_dis=1
 
     def step(self, action: Any) -> Tuple[Any, float, bool, dict]:
         obs = []
@@ -165,6 +167,8 @@ class ROARppoEnvE2E(ROAREnv):
         if not self.reset_by_crash and self.steps-self.reward_step>self.reward_tol*self.fps and self.steps>5*self.fps:
             self.end_check=True
             return True
+        if self.reset_by_going_back and self.agent.bbox_list[(self.agent.int_counter-self.death_line_dis)%len(self.agent.bbox_list)].has_crossed(self.agent.vehicle.transform):
+            return True
         if self.agent.finish_loop:
             self.complete_loop=True
             self.end_check=True
@@ -206,6 +210,10 @@ class ROARppoEnvE2E(ROAREnv):
                 self.crash_check = False
         if not self.reset_by_crash and self.steps-self.reward_step>self.reward_tol*self.fps and self.steps>5*self.fps:
             reward -= 200
+        if self.reset_by_going_back and self.agent.bbox_list[(self.agent.int_counter-self.death_line_dis)%len(self.agent.bbox_list)].has_crossed(self.agent.vehicle.transform):
+            reward -= 200
+
+
         # log prev info for next reward computation
         self.prev_speed = Vehicle.get_speed(self.agent.vehicle)
         self.prev_cross_reward = self.agent.cross_reward
