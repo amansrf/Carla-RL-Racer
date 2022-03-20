@@ -65,6 +65,11 @@ class ROARppoEnvE2E(ROAREnv):
         self.ep_rewards = 0
         self.frame_reward = 0
         self.highscore = -1000
+
+        self.gamma=0.99
+        self.ep_actual_reward = 0
+        self.high_actual_score = -1000
+
         self.highest_chkpt = 0
         self.speeds = []
         self.prev_int_counter = 0
@@ -74,6 +79,7 @@ class ROARppoEnvE2E(ROAREnv):
         self.complete_loop=False
         self.his_checkpoint=[]
         self.his_score=[]
+        self.his_actual_score=[]
         self.time_to_waypoint_ratio = 0.25
         self.crash_step=0
         self.reward_step=0
@@ -110,8 +116,9 @@ class ROARppoEnvE2E(ROAREnv):
         self.render()
         self.frame_reward = sum(rewards)
         self.ep_rewards += sum(rewards)
+        self.ep_actual_reward=self.ep_actual_reward*self.gamma+sum(rewards)
+        self.wandb_logger()
         if is_done:
-            self.wandb_logger()
             self.crash_check = False
             self.update_highscore()
         return np.array(obs), self.frame_reward, self._terminal(), self._get_info()
@@ -119,8 +126,10 @@ class ROARppoEnvE2E(ROAREnv):
     def _get_info(self) -> dict:
         info_dict = OrderedDict()
         info_dict["Current HIGHSCORE"] = self.highscore
+        info_dict["Current Actual HIGHSCORE"] = self.high_actual_score
         info_dict["Furthest Checkpoint"] = self.highest_chkpt*self.agent.interval
         info_dict["episode reward"] = self.ep_rewards
+        info_dict["episode actual reward"] = self.ep_actual_reward
         info_dict["checkpoints"] = self.agent.int_counter*self.agent.interval
         info_dict["reward"] = self.frame_reward
         info_dict["largest_steps"] = self.largest_steps
@@ -128,6 +137,7 @@ class ROARppoEnvE2E(ROAREnv):
         info_dict["complete_state"]=self.complete_loop
         info_dict["avg10_checkpoints"]=np.average(self.his_checkpoint)
         info_dict["avg10_score"]=np.average(self.his_score)
+        info_dict["avg10_actual_score"]=np.average(self.his_actual_score)
         # info_dict["throttle"] = action[0]
         # info_dict["steering"] = action[1]
         # info_dict["braking"] = action[2]
@@ -136,6 +146,8 @@ class ROARppoEnvE2E(ROAREnv):
     def update_highscore(self):
         if self.ep_rewards > self.highscore:
             self.highscore = self.ep_rewards
+        if self.ep_actual_reward > self.high_actual_score:
+            self.high_actual_score = self.ep_actual_reward
         if self.agent.int_counter > self.highest_chkpt:
             self.highest_chkpt = self.agent.int_counter
         if self.agent.vehicle.get_speed(self.agent.vehicle)>self.highspeed:
@@ -268,10 +280,13 @@ class ROARppoEnvE2E(ROAREnv):
         if len(self.his_checkpoint)>=10:
             self.his_checkpoint=self.his_checkpoint[-10:]
             self.his_score=self.his_score[-10:]
+            self.his_actual_score=self.his_actual_score[-10:]
         if self.agent:
             self.his_checkpoint.append(self.agent.int_counter*self.agent.interval)
             self.his_score.append(self.ep_rewards)
+            self.his_actual_score.append(self.ep_actual_reward)
         self.ep_rewards = 0
+        self.ep_actual_rewards = 0
         if self.steps>self.largest_steps and not self.complete_loop:
             self.largest_steps=self.steps
         elif self.complete_loop and self.agent.finish_loop and self.steps<self.largest_steps:
@@ -285,10 +300,13 @@ class ROARppoEnvE2E(ROAREnv):
     def wandb_logger(self):
         wandb.log({
             "Episode reward": self.ep_rewards,
+            "Episode actual reward": self.ep_actual_reward,
             "Checkpoint reached": self.agent.int_counter*self.agent.interval,
             "largest_steps" : self.largest_steps,
             "highest_speed" : self.highspeed,
             "avg10_checkpoints":np.average(self.his_checkpoint),
             "avg10_score":np.average(self.his_score),
+            "avg10_actual_score":np.average(self.his_actual_score),
+            "highest_actual_score":np.average(self.high_actual_score),
         })
         return
