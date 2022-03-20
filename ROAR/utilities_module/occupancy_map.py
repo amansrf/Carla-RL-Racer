@@ -317,7 +317,7 @@ class OccupancyGridMap(Module):
                 view_size = (100, 100),
                 boundary_size = (100, 100),
                          bbox_list=None,
-                         next_bbox_list=None) -> np.ndarray:
+                         next_bbox_list=None,discount_passed=True) -> np.ndarray:
         """
         Return global occu map if transform is None
         Otherwise, return ego centric map
@@ -368,7 +368,10 @@ class OccupancyGridMap(Module):
                         coord+=[(first_cut_size[0] // 2)-x,(first_cut_size[1] // 2)-y]
                         coord=coord.swapaxes(0,1)
                         coord[[0,1]]=coord[[1,0]]
-                        w_map[tuple(coord)]=bbox.get_value()
+                        v=bbox.get_value()
+                        if discount_passed:
+                            v/=5
+                        w_map[tuple(coord)]=v
 
             m_map=map_to_view.copy()
             m_map[m_map>=1]=1

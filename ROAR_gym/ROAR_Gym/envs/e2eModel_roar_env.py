@@ -234,7 +234,7 @@ class ROARppoEnvE2E(ROAREnv):
             map_list = self.agent.occupancy_map.get_map_baseline(transform_list=self.agent.vt_queue,
                                                     view_size=(CONFIG["x_res"], CONFIG["y_res"]),
                                                     bbox_list=self.agent.frame_queue,
-                                                                 next_bbox_list=next_bbox_list
+                                                                 next_bbox_list=next_bbox_list,discount_passed=True
                                                     )
             # data = cv2.resize(occu_map, (CONFIG["x_res"], CONFIG["y_res"]), interpolation=cv2.INTER_AREA)
             #cv2.imshow("Occupancy Grid Map", cv2.resize(np.float32(data), dsize=(500, 500)))
