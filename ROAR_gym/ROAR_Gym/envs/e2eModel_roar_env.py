@@ -17,6 +17,7 @@ import cv2
 import wandb
 
 mode='baseline'
+ACTION_SPACE=4
 if mode=='no_map':
     FRAME_STACK = 1
 else:
@@ -47,7 +48,7 @@ class ROARppoEnvE2E(ROAREnv):
         # high=np.array([1, 0.12, 0.5])
         self.mode=mode
         if self.mode=='baseline':
-            self.action_space = Box(low=low, high=high, dtype=np.float32)
+            self.action_space = Box(low=np.tile(low,(ACTION_SPACE)), high=np.tile(high,(ACTION_SPACE)), dtype=np.float32)
         else:
             self.action_space = Box(low=np.tile(low,(FRAME_STACK)), high=np.tile(high,(FRAME_STACK)), dtype=np.float32)
 
@@ -83,7 +84,7 @@ class ROARppoEnvE2E(ROAREnv):
         self.time_to_waypoint_ratio = 0.25
         self.crash_step=0
         self.reward_step=0
-        self.reset_by_crash=False
+        self.reset_by_crash=True
         self.fps=8
         self.crash_tol=5
         self.reward_tol=5
@@ -95,7 +96,7 @@ class ROARppoEnvE2E(ROAREnv):
         obs = []
         rewards = []
         self.steps+=1
-        for i in range(1):
+        for i in range(ACTION_SPACE):
             # throttle=(action[i*3+0]+0.5)/2+1
             throttle=0.8#(action[i*3+2]-1)/2==0
             # target_steering=action[i*3+1]/10
@@ -110,12 +111,15 @@ class ROARppoEnvE2E(ROAREnv):
             self.agent.kwargs["control"] = VehicleControl(throttle=throttle,
                                                           steering=steering,
                                                           braking=braking)
-            ob, reward, is_done, info = super(ROARppoEnvE2E, self).step(action)
-            obs.append(ob)
+
+            update_queue=i==(ACTION_SPACE-1)
+            reward, is_done = super(ROARppoEnvE2E, self).step(action,update_queue)
             rewards.append(reward)
+            self.render()
             if is_done:
                 break
-        self.render()
+        ob=self._get_obs()
+        obs.append(ob)
         self.frame_reward = sum(rewards)
         self.ep_rewards += sum(rewards)
         self.ep_actual_reward=self.ep_actual_reward*self.gamma+sum(rewards)
@@ -167,7 +171,7 @@ class ROARppoEnvE2E(ROAREnv):
         if not self.reset_by_crash and self.steps-self.reward_step>self.reward_tol*self.fps and self.steps>5*self.fps:
             self.end_check=True
             return True
-        if self.reset_by_going_back and self.agent.bbox_list[(self.agent.int_counter-self.death_line_dis)%len(self.agent.bbox_list)].has_crossed(self.agent.vehicle.transform):
+        if self.reset_by_going_back and self.agent.int_counter>self.death_line_dis and not self.agent.bbox_list[(self.agent.int_counter-self.death_line_dis)%len(self.agent.bbox_list)].has_crossed(self.agent.vehicle.transform):
             return True
         if self.agent.finish_loop:
             self.complete_loop=True
@@ -183,8 +187,8 @@ class ROARppoEnvE2E(ROAREnv):
         if self.end_check:
             return 0
 
-        if self.reset_by_crash and self.crash_check:
-            return 0
+        # if self.reset_by_crash and self.crash_check:
+        #     return 0
         # reward computation
         # current_speed = self.agent.bbox_list[self.agent.int_counter%len(self.agent.bbox_list)].get_directional_velocity(self.agent.vehicle.velocity.x,self.agent.vehicle.velocity.y)
         # current_speed = self.agent.vehicle.get_speed()
@@ -200,14 +204,14 @@ class ROARppoEnvE2E(ROAREnv):
             reward += (self.agent.cross_reward - self.prev_cross_reward)*self.agent.interval*self.time_to_waypoint_ratio
             self.reward_step=self.steps
 
-        if self.steps-self.crash_step>self.crash_tol*self.fps:
-            if self.carla_runner.get_num_collision() > 0:
-                if self.reset_by_crash:
-                    reward -= 200#0# /(min(total_num_cross,10))
-                self.crash_check = True
-                self.crash_step=self.steps
-            else:
-                self.crash_check = False
+        # if self.steps-self.crash_step>self.crash_tol*self.fps:
+        if self.carla_runner.get_num_collision() > 0:
+            if self.reset_by_crash:
+                reward -= 200#0# /(min(total_num_cross,10))
+            # self.crash_check = True
+            self.crash_step=self.steps
+            # else:
+            #     self.crash_check = False
         if not self.reset_by_crash and self.steps-self.reward_step>self.reward_tol*self.fps and self.steps>5*self.fps:
             reward -= 200
         if self.reset_by_going_back and self.agent.bbox_list[(self.agent.int_counter-self.death_line_dis)%len(self.agent.bbox_list)].has_crossed(self.agent.vehicle.transform):

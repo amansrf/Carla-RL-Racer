@@ -370,8 +370,9 @@ class OccupancyGridMap(Module):
                         coord[[0,1]]=coord[[1,0]]
                         v=bbox.get_value()
                         if discount_passed:
+                            v=np.array(v)
                             v/=5
-                        w_map[tuple(coord)]=v
+                        w_map[tuple(coord)]+=v
 
             m_map=map_to_view.copy()
             m_map[m_map>=1]=1
