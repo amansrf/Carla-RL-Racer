@@ -214,7 +214,7 @@ class ROARppoEnvE2E(ROAREnv):
             #     self.crash_check = False
         if not self.reset_by_crash and self.steps-self.reward_step>self.reward_tol*self.fps and self.steps>5*self.fps:
             reward -= 200
-        if self.reset_by_going_back and self.agent.bbox_list[(self.agent.int_counter-self.death_line_dis)%len(self.agent.bbox_list)].has_crossed(self.agent.vehicle.transform):
+        if self.reset_by_going_back and self.agent.int_counter>self.death_line_dis and not self.agent.bbox_list[(self.agent.int_counter-self.death_line_dis)%len(self.agent.bbox_list)].has_crossed(self.agent.vehicle.transform):
             reward -= 200
 
 

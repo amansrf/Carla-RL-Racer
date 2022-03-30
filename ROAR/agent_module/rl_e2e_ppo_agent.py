@@ -145,6 +145,9 @@ class RLe2ePPOAgent(Agent):
             else:
                 self.vt_queue.popleft()
                 self.vt_queue.append(self.vehicle.transform)
+        else:
+            self.frame_queue[-1].extend(currentframe_crossed)
+
 
     def _get_all_bbox(self):
         local_int_counter = 0
