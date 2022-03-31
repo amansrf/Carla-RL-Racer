@@ -87,7 +87,7 @@ class ROARppoEnvE2E(ROAREnv):
         self.reset_by_crash=True
         self.fps=8
         self.crash_tol=5
-        self.reward_tol=5
+        self.reward_tol=4
         self.end_check=False
         self.reset_by_going_back=True
         self.death_line_dis=1
