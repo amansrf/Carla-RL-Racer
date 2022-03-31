@@ -271,7 +271,6 @@ def main(pass_num):
         print(f"Loading old run {run.id}")
 
     print("Model Loaded Successfully")
-
     # Defining Callback Functions
 
     logging_callback = LoggingCallback(model=model)
