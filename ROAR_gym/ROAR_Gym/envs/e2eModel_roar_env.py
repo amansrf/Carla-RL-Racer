@@ -307,6 +307,7 @@ class ROARppoEnvE2E(ROAREnv):
         self.steps=0
         self.crash_step=0
         self.reward_step=0
+        self.end_check=False
         return self._get_obs()
 
     def wandb_logger(self):
