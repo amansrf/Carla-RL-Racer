@@ -103,7 +103,8 @@ class OccupancyGridMap(Module):
              [x, y]
             ]
         """
-        transformed = np.round(world_cords_xy - [self._min_x, self._min_y]).astype(np.int64)
+        # transformed = np.round(world_cords_xy - [self._min_x, self._min_y]).astype(np.int64)
+        transformed = np.round(world_cords_xy).astype(np.int64)
         return transformed
 
     def _update_grid_map_from_world_cord(self, world_cords_xy):
@@ -317,7 +318,7 @@ class OccupancyGridMap(Module):
                 view_size = (100, 100),
                 boundary_size = (100, 100),
                          bbox_list=None,
-                         next_bbox_list=None,discount_passed=True) -> np.ndarray:
+                         next_bbox_list=None) -> np.ndarray:
         """
         Return global occu map if transform is None
         Otherwise, return ego centric map
@@ -368,11 +369,7 @@ class OccupancyGridMap(Module):
                         coord+=[(first_cut_size[0] // 2)-x,(first_cut_size[1] // 2)-y]
                         coord=coord.swapaxes(0,1)
                         coord[[0,1]]=coord[[1,0]]
-                        v=bbox.get_value()
-                        if discount_passed:
-                            v=np.array(v)
-                            v/=5
-                        w_map[tuple(coord)]+=v
+                        w_map[tuple(coord)]=bbox.get_value()
 
             m_map=map_to_view.copy()
             m_map[m_map>=1]=1
