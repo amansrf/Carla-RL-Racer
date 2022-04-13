@@ -156,7 +156,7 @@ def wandb_run_init(wandb_hp_config, load=False, requested_run_id=None, use_rando
 
     # Create a wandb run variable
     wandb.tensorboard.patch(
-        tensorboardX=False,
+        # tensorboardX=False,
         pytorch=True,
     )
     run = wandb.init(
