@@ -47,7 +47,7 @@ class ROAREnv(gym.Env, ABC):
         self.action_space = None  # overwrite in higher classes
         self.observation_space = None  # overwrite in higher classes
 
-    def step(self, action: Any,update_queue=True) -> Tuple[float, bool]:
+    def step(self, action: Any) -> Tuple[Any, float, bool, dict]:
         """
         This provides an example implementation of step, intended to be overwritten
 
@@ -68,8 +68,8 @@ class ROAREnv(gym.Env, ABC):
         self.carla_runner.world.tick(self.clock)
         self.carla_runner.convert_data()
 
-        self.agent.run_step(vehicle=self.carla_runner.vehicle_state,update_queue=update_queue)
-        return self.get_reward(), self._terminal()
+        self.agent.run_step(vehicle=self.carla_runner.vehicle_state)
+        return self._get_obs(), self.get_reward(), self._terminal(), self._get_info()
 
     def reset(self) -> Any:
         self.carla_runner.on_finish()

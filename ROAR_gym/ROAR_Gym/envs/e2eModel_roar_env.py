@@ -112,7 +112,11 @@ class ROARppoEnvE2E(ROAREnv):
             self.agent.kwargs["control"] = VehicleControl(throttle=throttle,
                                                           steering=steering,
                                                           braking=braking)
+
+            # a, b = super(ROARppoEnvE2E, self).step(action)
             ob, reward, is_done, info = super(ROARppoEnvE2E, self).step(action)
+            # print(a, b)
+
             obs.append(ob)
             rewards.append(reward)
             if is_done:
