@@ -49,8 +49,8 @@ import os
 import sys
 from pathlib import Path
 
-# imports for reading and writing json config files
-import json
+# imports for reading and writing to json files
+from utility import json_read_write
 
 # imports from the ROAR module
 from ROAR_Sim.configurations.configuration import Configuration as CarlaConfig
@@ -94,37 +94,6 @@ CUDA_VISIBLE_DEVICES = 1
 RUN_FPS = misc_params["run_fps"]
 MODEL_DIR = misc_params["model_directory"]
 WANDB_CONFIG_DIR = "configurations/wandb_configuration.json"
-
-
-def json_read_write(file, load_var=None, mode='r'):
-    """
-
-    Args:
-        file: address of json file to be loaded
-        load_var: variable to be written to, or read from
-        mode: 'r' to read from json, 'w' to write to json
-
-    Returns:
-        load_var: variable with data that has been read in mode 'r'
-                  original variable in case of 'w'
-
-    """
-    if mode == 'r':
-        with open(file, mode) as json_file:
-            load_var = json.load(json_file)  # Reading the file
-            print(f"{file} json config read successful")
-            json_file.close()
-            return load_var
-    elif mode == 'w':
-        assert load_var is not None, "load_var was None"
-        with open(file, mode) as json_file:
-            json.dump(load_var, json_file)  # Writing to the file
-            print(f"{file} json config write successful")
-            json_file.close()
-            return load_var
-    else:
-        assert mode == 'w' or 'r', f"unsupported mode type: {mode}"
-        return None
 
 # TODO track previously used run IDs
 def wandb_run_init(wandb_hp_config, load=False, requested_run_id=None, use_random_id=False):

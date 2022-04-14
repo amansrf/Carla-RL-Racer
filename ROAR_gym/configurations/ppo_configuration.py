@@ -15,6 +15,22 @@ misc_params = {
   "total_timesteps": int(1e6),
 }
 
+spawn_params = {
+  "num_spawn_pts": 13,  # Last one is 12
+  "init_spawn_pt": 10,
+  "dynamic_spawn": True,  # True if start at different spawn locations on reset
+
+  # Dynamic Type Choice:
+  #   1. "uniform random" - Choose from uniform random distribution in range(init_spawn_point:num_spawn_pts)
+  #   2. "linear forward" - After reset spawn point increments by one. Loops back to init after num_spawn_pts reached
+  #   3. "linear backward" - After reset decrement spawn point by one. Loops back to num_spawn_pts after init reached
+  #   4. "custom spawn pts" - Provide a custom list of spawn points.
+  "dynamic_type": "linear backward",
+  "custom_list": [4, 9, 0, 12, 7],  # List of custom spawn pts
+
+  "spawn_pt_iterator": 0,  # DO NOT TOUCH THIS! Used Internally!
+}
+
 wandb_saves = {
   "gradient_save_freq": 512 * misc_params["run_fps"],
   "model_save_freq": 50 * misc_params["run_fps"],

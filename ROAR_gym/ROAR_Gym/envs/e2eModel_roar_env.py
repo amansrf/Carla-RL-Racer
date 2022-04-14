@@ -1,7 +1,7 @@
 try:
     from ROAR_Gym.envs.roar_env import ROAREnv
 except:
-    from ROAR_Gym.ROAR_Gym.envs.roar_env import ROAREnv
+    from ROAR_gym.ROAR_Gym.envs.roar_env import ROAREnv
 
 from ROAR.utilities_module.vehicle_models import VehicleControl
 from ROAR.agent_module.agent import Agent
@@ -15,6 +15,12 @@ from collections import OrderedDict
 from gym.spaces import Discrete, Box
 import cv2
 import wandb
+
+# imports for reading and writing json config files
+from ROAR_gym.utility import json_read_write, next_spawn_point
+
+# Load spawn parameters from the ppo_configuration file
+from ROAR_gym.configurations.ppo_configuration import spawn_params
 
 mode='baseline'
 if mode=='no_map':
@@ -82,6 +88,17 @@ class ROARppoEnvE2E(ROAREnv):
         # self.crash_tol=5
         # self.reward_tol=5
         # self.end_check=False
+
+        # Spawn initializations
+        # TODO: This is a hacky fix because the reset function seems to be called on init as well.
+        if spawn_params["dynamic_type"] == "linear forward":
+            self.agent_config.spawn_point_id = spawn_params["init_spawn_pt"] - 1
+        elif spawn_params["dynamic_type"] == "linear backward":
+            self.agent_config.spawn_point_id = spawn_params["init_spawn_pt"] + 1
+        else:
+            self.agent_config.spawn_point_id = spawn_params["init_spawn_pt"]
+
+
 
     def step(self, action: Any) -> Tuple[Any, float, bool, dict]:
         obs = []
@@ -307,6 +324,10 @@ class ROARppoEnvE2E(ROAREnv):
             self.largest_steps=self.steps
         elif self.complete_loop and self.agent.finish_loop and self.steps<self.largest_steps:
             self.largest_steps=self.steps
+
+        # Change Spawn Point before reset
+        self.agent_config.spawn_point_id = next_spawn_point(self.agent_config.spawn_point_id)
+
         super(ROARppoEnvE2E, self).reset()
         self.steps=0
         # self.crash_step=0
