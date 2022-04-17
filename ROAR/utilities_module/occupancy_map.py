@@ -313,7 +313,6 @@ class OccupancyGridMap(Module):
         coord[[0,1]]=coord[[1,0]]
         self._map[tuple(coord)] -= bbox.get_value()
 
-    # @profile
     def get_map_baseline(self,
                 transform_list,
                 view_size = (100, 100),
@@ -336,25 +335,19 @@ class OccupancyGridMap(Module):
             np.ndarray of float32
         """
         num_frames=len(transform_list)
-        map_to_view = self._map
+        map_to_view = np.float32(self._map)
+        for bbox in next_bbox_list:
+            coord=[self.location_to_occu_cord(location=location)[0] for location in bbox.get_visualize_locs()]
+            coord=np.array(coord).swapaxes(0,1)
+            coord[[0,1]]=coord[[1,0]]
+            map_to_view[tuple(coord)] += bbox.get_value()
+
         yaw=-transform_list[-1].rotation.yaw
         occu_cord = self.location_to_occu_cord(location=transform_list[-1].location)
         x, y = occu_cord[0]
         first_cut_size = (view_size[0] + boundary_size[0], view_size[1] + boundary_size[1])
         map_to_view = map_to_view[y - first_cut_size[1] // 2: y + first_cut_size[1] // 2,
-                  x - first_cut_size[0] // 2: x + first_cut_size[0] // 2].copy()
-
-        for bbox in next_bbox_list:
-            coord = [self.location_to_occu_cord(location=location)[0] for location in bbox.get_visualize_locs()]
-            coord = np.array(coord)
-            coord += [(first_cut_size[0] // 2) - x, (first_cut_size[1] // 2) - y]
-            coord = coord.swapaxes(0, 1)
-            coord[[0, 1]] = coord[[1, 0]]
-            try:
-                map_to_view[tuple(coord)] += bbox.get_value()
-            except:
-                pass
-
+                  x - first_cut_size[0] // 2: x + first_cut_size[0] // 2]
 
         overlap=False
         ret=[]
@@ -378,10 +371,7 @@ class OccupancyGridMap(Module):
                         coord+=[(first_cut_size[0] // 2)-x,(first_cut_size[1] // 2)-y]
                         coord=coord.swapaxes(0,1)
                         coord[[0,1]]=coord[[1,0]]
-                        try:
-                            w_map[tuple(coord)]=bbox.get_value()
-                        except:
-                            pass
+                        w_map[tuple(coord)]=bbox.get_value()
 
             m_map=map_to_view.copy()
             m_map[m_map>=1]=1
@@ -429,7 +419,7 @@ class OccupancyGridMap(Module):
         assert m.shape == self._map.shape, f"Loaded map is of shape [{m.shape}], " \
                                            f"does not match the expected shape [{self._map.shape}]"
         self._map = m
-        self._map=np.float32(np.divide(self._map,np.max(self._map)))
+        self._map=np.divide(self._map,np.max(self._map))
         self._static_obstacles = np.vstack([np.where(self._map == 1)]).T
 
 
