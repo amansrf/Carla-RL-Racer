@@ -11,7 +11,7 @@ misc_params = {
   "env_name": 'roar-e2e-ppo-v0',
   "run_fps": 8,  # TODO Link to the environment RUN_FPS
   "model_directory": Path("./output/PPOe2e_Run_29"),
-  "run_name": "Run 29",
+  "run_name": "Run haha",
   "total_timesteps": int(1e6),
 }
 

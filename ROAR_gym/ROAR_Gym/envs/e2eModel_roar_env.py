@@ -16,6 +16,10 @@ from gym.spaces import Discrete, Box
 import cv2
 import wandb
 
+# -------------------------------- ROS Imports ------------------------------- #
+import rclpy
+from ROAR_Gym.envs.control_streamer import RLStreamer
+
 mode='baseline'
 ACTION_SPACE=4
 if mode=='no_map':
@@ -92,6 +96,10 @@ class ROARppoEnvE2E(ROAREnv):
         self.reset_by_going_back=True
         self.death_line_dis=1
 
+        # --------------------------------- ROS Inits -------------------------------- #
+        rclpy.init()
+        self.ros_node = RLStreamer()
+
     def step(self, action: Any) -> Tuple[Any, float, bool, dict]:
         obs = []
         rewards = []
@@ -111,6 +119,16 @@ class ROARppoEnvE2E(ROAREnv):
             self.agent.kwargs["control"] = VehicleControl(throttle=throttle,
                                                           steering=steering,
                                                           braking=braking)
+            print(throttle, steering, braking, float(braking))
+
+            self.ros_node.pub_control(throttle=throttle, steer=steering, brake=float(braking))
+            rclpy.spin_once(self.ros_node, timeout_sec=0.2)
+
+            cv2.imshow("bev from RL!!!", self.ros_node.bev_image)
+            cv2.waitKey(1)
+
+
+
 
             update_queue=i==(ACTION_SPACE-1)
             reward, is_done = super(ROARppoEnvE2E, self).step(action,update_queue)

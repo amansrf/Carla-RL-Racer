@@ -1,5 +1,5 @@
 {
-  "host": "127.0.0.1",
+  "host": "192.168.50.50",
   "port": 2000,
   "timeout": 5.0,
   "width": 1280,
@@ -30,6 +30,6 @@
   "no_rendering_mode": false,
   "fixed_delta_seconds": 0.03125,
   "should_spawn_npcs": false,
-  "npc_config_file_path": "../ROAR_Sim/configurations/npc_config.json",
-  "agent_config_path": "./configurations/agent_configuration.json"
+  "npc_config_file_path": "/home/roar/ROAR_RL/ROAR_Sim/configurations/npc_config.json",
+  "agent_config_path": "/home/roar/ROAR_RL/ROAR_gym/configurations/agent_configuration.json"
 }
