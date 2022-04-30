@@ -87,15 +87,15 @@ class RLe2ePPOAgent(Agent):
         #self._get_next_bbox()
         self.finish_loop=False
 
-    def run_step(self,vehicle: Vehicle,update_queue=True):
+    def run_step(self,vehicle: Vehicle) -> VehicleControl:
         # super(RLe2ePPOAgent, self).run_step(sensors_data, vehicle)
         #print(self.vehicle.transform)
         #self.local_planner.run_in_series()#TO REMOVE
 
         self.vehicle = vehicle
-        self.bbox_step(update_queue)
+        self.bbox_step()
 
-    def bbox_step(self,update_queue=True):
+    def bbox_step(self):
         """
         This is the function that the line detection agent used
         Main function to use for detecting whether the vehicle reached a new strip in
@@ -131,26 +131,19 @@ class RLe2ePPOAgent(Agent):
                 self.int_counter += 1
             else:
                 break
-        if update_queue:
-            if len(self.frame_queue) < 4 and len(currentframe_crossed):
-                self.frame_queue.append(currentframe_crossed)
-            elif len(currentframe_crossed):
-                self.frame_queue.popleft()
-                self.frame_queue.append(currentframe_crossed)
-            else:
-                self.frame_queue.append(None)
-            # add vehicle tranform
-            if len(self.vt_queue) < 4:
-                self.vt_queue.append(self.vehicle.transform)
-            else:
-                self.vt_queue.popleft()
-                self.vt_queue.append(self.vehicle.transform)
+        if len(self.frame_queue) < 4 and len(currentframe_crossed):
+            self.frame_queue.append(currentframe_crossed)
+        elif len(currentframe_crossed):
+            self.frame_queue.popleft()
+            self.frame_queue.append(currentframe_crossed)
         else:
-            if self.frame_queue[-1]==None:
-                self.frame_queue[-1]=currentframe_crossed
-            else:
-                self.frame_queue[-1].extend(currentframe_crossed)
-
+            self.frame_queue.append(None)
+        # add vehicle tranform
+        if len(self.vt_queue) < 4:
+            self.vt_queue.append(self.vehicle.transform)
+        else:
+            self.vt_queue.popleft()
+            self.vt_queue.append(self.vehicle.transform)
 
     def _get_all_bbox(self):
         local_int_counter = 0
