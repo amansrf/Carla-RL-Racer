@@ -7,7 +7,7 @@ from sensor_msgs.msg import Image
 from std_msgs.msg import Float32
 
 import message_filters
-from message_filters import TimeSynchronizer, Subscriber
+from message_filters import TimeSynchronizer, Subscriber, ApproximateTimeSynchronizer
 
 import cv2
 from cv_bridge import CvBridge
@@ -26,32 +26,60 @@ class RLStreamer(Node):
         
         self.control_pub = self.create_publisher(CarlaEgoVehicleControl, "/carla/ego_vehicle/vehicle_control_cmd_manual", 10)
 
-        # self.bev_sub = Subscriber(self, Image, "/rg_mask", qos_profile=qos_profile)
-        # self.event_sub = Subscriber(self, Image, "/floodfill_mask", qos_profile=qos_profile)
         self.bridge = CvBridge()
-        self.bev_sub = self.create_subscription(Image, '/bev_publisher/bev_image', self.bev_callback, 1)
-        self.crash_reward_sub = self.create_subscription(Float32, '/state_streamer/reward_crash', self.reward_callback, 1)
+        
         self.bev_image = None
-        self.crash = None
-        self.reward = None
         self.bev_locked = False
 
-    def bev_callback(self, msg):
+        self.event = 0
+
+        # self.bev_sub = self.create_subscription(Image, '/bev_publisher/bev_image', self.bev_callback, 1)
+        # self.event_sub = self.create_subscription(Float32, '/state_streamer/event', self.reward_callback, 1)
+
+        self.bev_sub   = Subscriber(self, Image, '/bev_publisher/bev_image', qos_profile=qos_profile)
+        self.event_sub = Subscriber(self, Float32, '/state_streamer/event', qos_profile=qos_profile)
+
+        sync_msg = ApproximateTimeSynchronizer(
+            [self.rg_mask_sub, self.flood_mask_sub],
+            queue_size=10,
+            slop=0.1,
+            allow_headerless=False
+        )
+        sync_msg.registerCallback(self.sync_callback)
+
+    def sync_callback(self, bev_msg, event_msg):
+
+        # ------------------------------- Handle Event ------------------------------- #
+        self.event = event_msg.data
+
+        # -------------------------------- Handle BEV -------------------------------- #
         # Set Lock to prevent access during write
         self.bev_locked = True
 
         # Converting ROS image message to RGB
-        self.bev_image = self.bridge.imgmsg_to_cv2(msg,desired_encoding='bgr8')
+        self.bev_image = self.bridge.imgmsg_to_cv2(bev_msg, desired_encoding='bgr8')
 
         # Remove lock as write is now finished
         self.bev_locked = False
-        
-    def reward_callback(self, msg):
 
-        if (msg == 0):
-            self.crash = msg.data
-        elif (msg.data == 1):
-            self.reward = msg.data
+
+
+    # def bev_callback(self, msg):
+    #     # Set Lock to prevent access during write
+    #     self.bev_locked = True
+
+    #     # Converting ROS image message to RGB
+    #     self.bev_image = self.bridge.imgmsg_to_cv2(msg,desired_encoding='bgr8')
+
+    #     # Remove lock as write is now finished
+    #     self.bev_locked = False
+        
+    # def reward_callback(self, msg):
+
+    #     if (msg == 0):
+    #         self.crash = msg.data
+    #     elif (msg.data == 1):
+    #         self.reward = msg.data
 
 
     def pub_control(self, throttle = 0, steer = 0, brake = 0):
