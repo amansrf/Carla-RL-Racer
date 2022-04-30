@@ -125,6 +125,9 @@ class ROARppoEnvE2E(ROAREnv):
             rclpy.spin_once(self.ros_node, timeout_sec=0.2)
 
             cv2.imshow("bev from RL!!!", self.ros_node.bev_image)
+            
+            print('Crash value:', self.ros_node.crash)
+            print('Reward value:', self.ros_node.reward)
             cv2.waitKey(1)
 
 

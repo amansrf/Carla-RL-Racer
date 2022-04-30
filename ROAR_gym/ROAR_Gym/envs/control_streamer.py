@@ -4,6 +4,7 @@ from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDur
 
 from carla_msgs.msg import CarlaEgoVehicleControl
 from sensor_msgs.msg import Image
+from std_msgs.msg import Float32
 
 import message_filters
 from message_filters import TimeSynchronizer, Subscriber
@@ -29,7 +30,10 @@ class RLStreamer(Node):
         # self.event_sub = Subscriber(self, Image, "/floodfill_mask", qos_profile=qos_profile)
         self.bridge = CvBridge()
         self.bev_sub = self.create_subscription(Image, '/bev_publisher/bev_image', self.bev_callback, 1)
+        self.crash_reward_sub = self.create_subscription(Float32, '/state_streamer/reward_crash', self.reward_callback, 1)
         self.bev_image = None
+        self.crash = None
+        self.reward = None
         self.bev_locked = False
 
     def bev_callback(self, msg):
@@ -41,6 +45,13 @@ class RLStreamer(Node):
 
         # Remove lock as write is now finished
         self.bev_locked = False
+        
+    def reward_callback(self, msg):
+
+        if (msg == 0):
+            self.crash = msg.data
+        elif (msg.data == 1):
+            self.reward = msg.data
 
 
     def pub_control(self, throttle = 0, steer = 0, brake = 0):
