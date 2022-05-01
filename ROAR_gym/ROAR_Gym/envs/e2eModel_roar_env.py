@@ -16,6 +16,7 @@ from gym.spaces import Discrete, Box
 import cv2
 import wandb
 
+
 # -------------------------------- ROS Imports ------------------------------- #
 import rclpy
 from ROAR_Gym.envs.control_streamer import RLStreamer
@@ -96,6 +97,10 @@ class ROARppoEnvE2E(ROAREnv):
         self.reset_by_going_back=True
         self.death_line_dis=1
 
+        self.int_counter = 0
+
+
+
         # --------------------------------- ROS Inits -------------------------------- #
         rclpy.init()
         self.ros_node = RLStreamer()
@@ -104,50 +109,43 @@ class ROARppoEnvE2E(ROAREnv):
         obs = []
         rewards = []
         self.steps+=1
+       
         for i in range(ACTION_SPACE):
-            # throttle=(action[i*3+0]+0.5)/2+1
-            throttle=0.8#(action[i*3+2]-1)/2==0
-            # target_steering=action[i*3+1]/10
-            # cur_steering=self.agent.vehicle.control.steering
-            # steering=max(min(cur_steering+0.1,target_steering),cur_steering-0.1)
-            # steering=np.sign(action[i*3+1])*max(0,(abs(action[i*3+1])-0.5))/4
+            throttle=0.8
             steering=action[i*3+1]/5
-            braking=0#(action[i*3+2]-1)/2
-            # throttle=min(max(action[i*3+0],0),1)
-            # steering=min(max(action[i*3+1],-1),1)
-            # braking=min(max(action[i*3+2],0),1)
-            self.agent.kwargs["control"] = VehicleControl(throttle=throttle,
-                                                          steering=steering,
-                                                          braking=braking)
-            print(throttle, steering, braking, float(braking))
+            braking=0
+
+            # self.agent.kwargs["control"] = VehicleControl(throttle=throttle,
+            #                                               steering=steering,
+            #                                               braking=braking)
+            # print(throttle, steering, braking, float(braking))
 
             self.ros_node.pub_control(throttle=throttle, steer=steering, brake=float(braking))
+
             rclpy.spin_once(self.ros_node, timeout_sec=0.2)
 
-            cv2.imshow("bev from RL!!!", self.ros_node.bev_image)
-            
-            print('Crash value:', self.ros_node.crash)
-            print('Reward value:', self.ros_node.reward)
+            cv2.imshow("BEV from RL!!!", self.ros_node.bev_image)
+
             cv2.waitKey(1)
 
-
-
-
             update_queue=i==(ACTION_SPACE-1)
-            reward, is_done = super(ROARppoEnvE2E, self).step(action,update_queue)
+            
+            reward, is_done = super(ROARppoEnvE2E, self).step(action,update_queue)    
             rewards.append(reward)
             self.render()
-            if is_done:
+            if (is_done):
                 break
+
         ob=self._get_obs()
         obs.append(ob)
         self.frame_reward = sum(rewards)
         self.ep_rewards += sum(rewards)
         self.ep_actual_reward=self.ep_actual_reward*self.gamma+sum(rewards)
         self.wandb_logger()
-        if is_done:
-            self.crash_check = False
-            self.update_highscore()
+
+        if (is_done):
+            self.update_highscore() #How to update the score
+
         return np.array(obs), self.frame_reward, self._terminal(), self._get_info()
 
     def _get_info(self) -> dict:
