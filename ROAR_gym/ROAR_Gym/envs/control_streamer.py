@@ -1,3 +1,4 @@
+from ROAR.utilities_module import occupancy_map
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy, QoSLivelinessPolicy
@@ -12,6 +13,7 @@ from message_filters import TimeSynchronizer, Subscriber, ApproximateTimeSynchro
 import cv2
 from cv_bridge import CvBridge
 
+import numpy as np
 
 
 class RLStreamer(Node):
@@ -24,12 +26,19 @@ class RLStreamer(Node):
             depth=10,
         )
         
+        self.ogm_shape = (84,84)
+        self.ogm_channels = 3
+        self.ogm_stack_size = 4
+
+
         self.control_pub = self.create_publisher(CarlaEgoVehicleControl, "/carla/ego_vehicle/vehicle_control_cmd_manual", 10)
 
         self.bridge = CvBridge()
-        
+
         self.bev_image = None
         self.bev_locked = False
+
+        self.ogm = np.zeros((self.ogm_shape[0], self.ogm_shape[1], self.ogm_channels, self.ogm_stack_size))
 
         self.event = 0
 
@@ -58,6 +67,7 @@ class RLStreamer(Node):
 
         # Converting ROS image message to RGB
         self.bev_image = self.bridge.imgmsg_to_cv2(bev_msg, desired_encoding='bgr8')
+        self.update_occupancy_map()
 
         # Remove lock as write is now finished
         self.bev_locked = False
@@ -92,3 +102,14 @@ class RLStreamer(Node):
         # Header
         control_msg.header.stamp = self.get_clock().now().to_msg()
         self.control_pub.publish(control_msg)
+
+    def get_num_collision(self):
+        if self.event == 2:
+            return 1
+        else:
+            return 0
+
+    def update_occupancy_map(self):
+        # self.ogm.
+
+    def get_occupancy_map(self):

@@ -181,28 +181,62 @@ class ROARppoEnvE2E(ROAREnv):
             self.highspeed=self.agent.vehicle.get_speed(self.agent.vehicle)
         return
 
+    # ---------------------------------------------------------------------------- #
+    #                       TODO: Cleaned but Must Be Checked                      #
+    # ---------------------------------------------------------------------------- #
     def _terminal(self) -> bool:
-        if self.reset_by_crash and self.carla_runner.get_num_collision() > self.max_collision_allowed:
+
+        # ---------------------------------------------------------------------------- #
+        #                               Carla Crash Check                              #
+        # ---------------------------------------------------------------------------- #
+        # if self.reset_by_crash and self.carla_runner.get_num_collision() > self.max_collision_allowed:
+        #     # crash_rep = open("crash_spot.txt", "a")
+        #     # loc = np.array([self.agent.vehicle.transform.location.x, self.agent.vehicle.transform.location.y, self.agent.vehicle.transform.location.z])
+        #     # np.savetxt(crash_rep, loc, delimiter=',')
+        #     # crash_rep.close()
+        #     self.end_check=True
+        #     return True
+        # ---------------------------------------------------------------------------- #
+
+        # ---------------------------------------------------------------------------- #
+        #                             Hardware Crash Check                             #
+        # ---------------------------------------------------------------------------- #
+        if self.reset_by_crash and self.ros_node.get_num_collision() > self.max_collision_allowed:
             # crash_rep = open("crash_spot.txt", "a")
             # loc = np.array([self.agent.vehicle.transform.location.x, self.agent.vehicle.transform.location.y, self.agent.vehicle.transform.location.z])
             # np.savetxt(crash_rep, loc, delimiter=',')
             # crash_rep.close()
             self.end_check=True
             return True
-        if not self.reset_by_crash and self.steps-self.reward_step>self.reward_tol*self.fps and self.steps>5*self.fps:
-            self.end_check=True
-            return True
-        if self.reset_by_going_back and self.agent.int_counter>self.death_line_dis and not self.agent.bbox_list[(self.agent.int_counter-self.death_line_dis)%len(self.agent.bbox_list)].has_crossed(self.agent.vehicle.transform):
-            return True
-        if self.agent.finish_loop:
-            self.complete_loop=True
-            self.end_check=True
-            return True
+        # ---------------------------------------------------------------------------- #
+        
+        # ---------------------------------------------------------------------------- #
+        #                  FIXME: Check with Eddie if this is required                 #
+        # ---------------------------------------------------------------------------- #
+        # if not self.reset_by_crash and self.steps-self.reward_step>self.reward_tol*self.fps and self.steps>5*self.fps:
+        #     self.end_check=True
+        #     return True
+        # if self.reset_by_going_back and self.agent.int_counter>self.death_line_dis and not self.agent.bbox_list[(self.agent.int_counter-self.death_line_dis)%len(self.agent.bbox_list)].has_crossed(self.agent.vehicle.transform):
+        #     return True
+        # ---------------------------------------------------------------------------- #
+
+        # ---------------------------------------------------------------------------- #
+        #         TODO: Uncomment following if we get close to finishing a lap.        #
+        # ---------------------------------------------------------------------------- #
+        # if self.agent.finish_loop:
+        #     self.complete_loop=True
+        #     self.end_check=True
+        #     return True
+        # ---------------------------------------------------------------------------- #
         return False
 
+    # ---------------------------------------------------------------------------- #
+    #                       TODO: Cleaned but Must Be Checked                      #
+    # ---------------------------------------------------------------------------- #
     def get_reward(self) -> float:
         # prep for reward computation
         # reward = -0.1*(1-self.agent.vehicle.control.throttle+10*self.agent.vehicle.control.braking+abs(self.agent.vehicle.control.steering))*400/8
+        
         reward=-1
         # curr_dist_to_strip = self.agent.curr_dist_to_strip
         if self.end_check:
@@ -215,37 +249,70 @@ class ROARppoEnvE2E(ROAREnv):
         # current_speed = self.agent.vehicle.get_speed()
         # self.speeds.append(current_speed)
 
-        if self.agent.cross_reward > self.prev_cross_reward:
-            # num_crossed = self.agent.int_counter - self.prev_int_counter
-            #speed reward
-            # reward+= np.average(self.speeds) * num_crossed/8
-            # self.speeds=[]
-            # self.prev_int_counter =self.agent.int_counter
-            #crossing reward
-            reward += (self.agent.cross_reward - self.prev_cross_reward)*self.agent.interval*self.time_to_waypoint_ratio
+        # ---------------------------------------------------------------------------- #
+        #                      Carla Version for Checkpoint Reward                     #
+        # ---------------------------------------------------------------------------- #
+        # if self.agent.cross_reward > self.prev_cross_reward:
+        #     # num_crossed = self.agent.int_counter - self.prev_int_counter
+        #     #speed reward
+        #     # reward+= np.average(self.speeds) * num_crossed/8
+        #     # self.speeds=[]
+        #     # self.prev_int_counter =self.agent.int_counter
+        #     #crossing reward
+        #     reward += (self.agent.cross_reward - self.prev_cross_reward)*self.agent.interval*self.time_to_waypoint_ratio
+        #     self.reward_step=self.steps
+        # ---------------------------------------------------------------------------- #
+
+        # ---------------------------------------------------------------------------- #
+        #                    Hardware Version for Checkpoint Reward                    #
+        # ---------------------------------------------------------------------------- #
+        if self.ros_node.event == 1:
+            reward += self.time_to_waypoint_ratio
             self.reward_step=self.steps
+        # ---------------------------------------------------------------------------- #
 
-        # if self.steps-self.crash_step>self.crash_tol*self.fps:
-        if self.carla_runner.get_num_collision() > 0:
+
+        # ---------------------------------------------------------------------------- #
+        #                   Carla Version for Crash Reward (Penalty)                   #
+        # ---------------------------------------------------------------------------- #
+        # # if self.steps-self.crash_step>self.crash_tol*self.fps:
+        # if self.carla_runner.get_num_collision() > 0:
+        #     if self.reset_by_crash:
+        #         reward -= 200#0# /(min(total_num_cross,10))
+        #     # self.crash_check = True
+        #     self.crash_step=self.steps
+        #     # else:
+        #     #     self.crash_check = False
+        # ---------------------------------------------------------------------------- #
+        
+        # ---------------------------------------------------------------------------- #
+        #                  Hardware Version for Crash Reward (Penalty)                 #
+        # ---------------------------------------------------------------------------- #
+        if self.ros_node.get_num_collision() > 0:
             if self.reset_by_crash:
-                reward -= 200#0# /(min(total_num_cross,10))
-            # self.crash_check = True
+                reward -= 200
             self.crash_step=self.steps
-            # else:
-            #     self.crash_check = False
-        if not self.reset_by_crash and self.steps-self.reward_step>self.reward_tol*self.fps and self.steps>5*self.fps:
-            reward -= 200
-        if self.reset_by_going_back and self.agent.int_counter>self.death_line_dis and not self.agent.bbox_list[(self.agent.int_counter-self.death_line_dis)%len(self.agent.bbox_list)].has_crossed(self.agent.vehicle.transform):
-            reward -= 200
+        # ---------------------------------------------------------------------------- #
 
+        # ---------------------------------------------------------------------------- #
+        #                  FIXME: Check with Eddie if this is required                 #
+        # ---------------------------------------------------------------------------- #
+        # if not self.reset_by_crash and self.steps-self.reward_step>self.reward_tol*self.fps and self.steps>5*self.fps:
+        #     reward -= 200
+        # if self.reset_by_going_back and self.agent.int_counter>self.death_line_dis and not self.agent.bbox_list[(self.agent.int_counter-self.death_line_dis)%len(self.agent.bbox_list)].has_crossed(self.agent.vehicle.transform):
+        #     reward -= 200
+        # ---------------------------------------------------------------------------- #
 
         # log prev info for next reward computation
-        self.prev_speed = Vehicle.get_speed(self.agent.vehicle)
-        self.prev_cross_reward = self.agent.cross_reward
+        # self.prev_cross_reward = self.agent.cross_reward
         return reward
 
     def _get_obs(self) -> np.ndarray:
         if mode=='baseline':
+
+            # ---------------------------------------------------------------------------- #
+            #                                Carla Based OGM                               #
+            # ---------------------------------------------------------------------------- #
             # vehicle_state=self.agent.vehicle.to_array() #12
             # line_location=self.agent.bbox.to_array(vehicle_state[3],vehicle_state[5]) #4
             # v_speed=np.sqrt(np.square(vehicle_state[0])+np.square(vehicle_state[1]))/150
@@ -273,6 +340,15 @@ class ROARppoEnvE2E(ROAREnv):
             #cv2.imshow("Occupancy Grid Map", cv2.resize(np.float32(data), dsize=(500, 500)))
 
             # data_view=np.sum(data,axis=2)
+            # ---------------------------------------------------------------------------- #
+
+            # ---------------------------------------------------------------------------- #
+            #                                 BEV Based OGM                                #
+            # ---------------------------------------------------------------------------- #
+            map_list = self.ros_node.occupancy_map()
+
+
+
             cv2.imshow("data", np.hstack(np.hstack(map_list))) # uncomment to show occu map
             cv2.waitKey(1)
             # yaw_angle=self.agent.vehicle.transform.rotation.yaw
