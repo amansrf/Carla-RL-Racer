@@ -37,7 +37,7 @@ class RLe2ePPOAgent(Agent):
         self.flatten=True
         self.occupancy_map = OccupancyGridMap(agent=self, threaded=True)
 
-        occ_file_path = Path("../ROAR_Sim/data/final2.npy")
+        occ_file_path = Path("../ROAR_Sim/data/final3.npy")
         self.occupancy_map.load_from_file(occ_file_path)
 
         self.plan_lst = list(self.mission_planner.produce_single_lap_mission_plan())
@@ -49,11 +49,11 @@ class RLe2ePPOAgent(Agent):
         self.thres = self.kwargs.get('thres', 1e-3)
 
         if self.flatten:
-            self.bbox_reward_list=[0.5 for _ in range(20)]
+            self.bbox_reward_list=[0.499 for _ in range(20)]
         else:
             middle=scipy.stats.norm(20//2, 20//3).pdf(20//2)
-            self.bbox_reward_list=[scipy.stats.norm(20//2, 20//3).pdf(i)/middle*0.5 for i in range(20)]
-        self.spawn_counter = 140
+            self.bbox_reward_list=[scipy.stats.norm(20//2, 20//3).pdf(i)/middle*0.499 for i in range(20)]
+        self.spawn_counter = 0
         self.int_counter = self.spawn_counter
         self.cross_reward = 0
         self.counter = 0

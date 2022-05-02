@@ -100,11 +100,8 @@ class ROARppoEnvE2E(ROAREnv):
         else:
             self.agent_config.spawn_point_id = spawn_params["init_spawn_pt"]
 
-        print(spawn_int_map[self.agent_config.spawn_point_id])
-        print(self.agent.spawn_counter)
-        # self.agent.int_counter = spawn_int_map[self.agent_config.spawn_point_id]
-        # print(self.agent.int_counter)
-
+        self.agent.spawn_counter = spawn_int_map[self.agent_config.spawn_point_id]
+        print("#########################\n",self.agent.spawn_counter)
 
 
     def step(self, action: Any) -> Tuple[Any, float, bool, dict]:
@@ -120,12 +117,9 @@ class ROARppoEnvE2E(ROAREnv):
             # else:
             #     throttle = 0
             #     braking = .8
-            throttle = .7
+            throttle = .6
             braking = 0
 
-            print(self.agent.int_counter)
-            print(self.agent.spawn_counter)
-            # print(spawn_int_map[self.agent_config.spawn_point_id])
 
             steering=action[i*3+1]/5
             self.agent.kwargs["control"] = VehicleControl(throttle=throttle,
@@ -284,9 +278,13 @@ class ROARppoEnvE2E(ROAREnv):
 
         # Change Spawn Point before reset
         self.agent_config.spawn_point_id = next_spawn_point(self.agent_config.spawn_point_id)
-        # self.agent.spawn_counter = spawn_int_map[self.agent_config.spawn_point_id]
+        print("Spawn Pt ID", self.agent_config.spawn_point_id)
+        self.EgoAgentClass.spawn_counter = spawn_int_map[self.agent_config.spawn_point_id]
+        self.agent.spawn_counter = spawn_int_map[self.agent_config.spawn_point_id]
 
         super(ROARppoEnvE2E, self).reset()
+        self.agent.spawn_counter = spawn_int_map[self.agent_config.spawn_point_id]
+        print(self.agent.spawn_counter)
         self.steps=0
         # self.crash_step=0
         # self.reward_step=0
