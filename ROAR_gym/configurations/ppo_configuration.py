@@ -10,14 +10,14 @@ sys.path.append(Path(os.getcwd()).parent.as_posix())
 misc_params = {
   "env_name": 'roar-e2e-ppo-v0',
   "run_fps": 8,  # TODO Link to the environment RUN_FPS
-  "model_directory": Path("./output/PPOe2e_Major_Run_3"),
-  "run_name": "Major Run 3",
+  "model_directory": Path("./output/PPOe2e_Major_Run_4"),
+  "run_name": "Major Run 4",
   "total_timesteps": int(1e6),
 }
 
 spawn_params = {
   "num_spawn_pts": 13,  # Last one is 12
-  "init_spawn_pt": 2,
+  "init_spawn_pt": 1,
   "dynamic_spawn": False,  # True if start at different spawn locations on reset
 
   # Dynamic Type Choice:
@@ -29,11 +29,12 @@ spawn_params = {
   "custom_list": [4, 9, 0, 12, 7],  # List of custom spawn pts
 
   "spawn_pt_iterator": 0,  # DO NOT TOUCH THIS! Used Internally!
+  "spawn_int_map": [91, 0, 140, 224, 312, 442, 556, 730, 782, 898, 1142, 1283, 39],
 }
 
 wandb_saves = {
-  "gradient_save_freq": 512 * misc_params["run_fps"],
-  "model_save_freq": 50 * misc_params["run_fps"],
+  "gradient_save_freq": 512 * misc_params["run_fps"]*10,
+  "model_save_freq": 50 * misc_params["run_fps"]*10,
 }
 
 PPO_params = dict(
