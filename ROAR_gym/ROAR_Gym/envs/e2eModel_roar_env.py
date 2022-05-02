@@ -110,15 +110,15 @@ class ROARppoEnvE2E(ROAREnv):
         self.steps+=1
         for i in range(1):
             # throttle=(action[i*3]+0.5)/2+1
-            # check = (action[i*3+0]+0.5)/2+1
-            # if check > 0.5:
-            #     throttle = 1
-            #     braking = 0
-            # else:
-            #     throttle = 0
-            #     braking = .8
-            throttle = .6
-            braking = 0
+            check = (action[i*3+0]+0.5)/2+1
+            if check > 0.5:
+                throttle = 0.7
+                braking = 0
+            else:
+                throttle = 0
+                braking = .8
+            # throttle = .6
+            # braking = 0
 
 
             steering=action[i*3+1]/5
