@@ -10,14 +10,31 @@ sys.path.append(Path(os.getcwd()).parent.as_posix())
 misc_params = {
   "env_name": 'roar-e2e-ppo-v0',
   "run_fps": 8,  # TODO Link to the environment RUN_FPS
-  "model_directory": Path("./output/PPOe2e_Run_1"),
-  "run_name": "Run 1",
+  "model_directory": Path("./output/PPOe2e_Major_Run_4"),
+  "run_name": "Major Run 4",
   "total_timesteps": int(1e6),
 }
 
+spawn_params = {
+  "num_spawn_pts": 13,  # Last one is 12
+  "init_spawn_pt": 1,
+  "dynamic_spawn": False,  # True if start at different spawn locations on reset
+
+  # Dynamic Type Choice:
+  #   1. "uniform random" - Choose from uniform random distribution in range(init_spawn_point:num_spawn_pts)
+  #   2. "linear forward" - After reset spawn point increments by one. Loops back to init after num_spawn_pts reached
+  #   3. "linear backward" - After reset decrement spawn point by one. Loops back to num_spawn_pts after init reached
+  #   4. "custom spawn pts" - Provide a custom list of spawn points.
+  "dynamic_type": "uniform random",
+  "custom_list": [4, 9, 0, 12, 7],  # List of custom spawn pts
+
+  "spawn_pt_iterator": 0,  # DO NOT TOUCH THIS! Used Internally!
+  "spawn_int_map": [91, 0, 140, 224, 312, 442, 556, 730, 782, 898, 1142, 1283, 39],
+}
+
 wandb_saves = {
-  "gradient_save_freq": 512 * misc_params["run_fps"],
-  "model_save_freq": 50 * misc_params["run_fps"],
+  "gradient_save_freq": 512 * misc_params["run_fps"]*10,
+  "model_save_freq": 50 * misc_params["run_fps"]*10,
 }
 
 PPO_params = dict(

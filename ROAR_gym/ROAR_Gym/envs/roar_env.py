@@ -41,7 +41,10 @@ class ROAREnv(gym.Env, ABC):
                                         agent_settings=self.agent_config,
                                         npc_agent_class=self.npc_agent_class)
         self.num_frames_per_step = num_frames_per_step
-        self.agent: Optional[Agent] = None
+
+        vehicle = self.carla_runner.set_carla_world()
+        # self.agent: Optional[Agent] = None
+        self.agent = self.EgoAgentClass(vehicle=vehicle, agent_settings=self.agent_config)
         self.clock: Optional[pygame.time.Clock] = None
 
         self.action_space = None  # overwrite in higher classes
