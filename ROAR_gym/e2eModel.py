@@ -86,7 +86,7 @@ warnings.filterwarnings('ignore')
 try:
     from ROAR_Gym.envs.roar_env import LoggingCallback
 except:
-    from ROAR_Gym.ROAR_Gym.envs.roar_env import LoggingCallback
+    from ROAR_gym.ROAR_Gym.envs.roar_env import LoggingCallback
 
 # os.environ["CUDA_VISIBLE_DEVICES"]="0,1"
 #  Parameters & Constants
