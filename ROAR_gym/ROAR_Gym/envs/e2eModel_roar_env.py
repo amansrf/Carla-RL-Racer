@@ -66,6 +66,7 @@ class ROARppoEnvE2E(ROAREnv):
         self.ep_rewards = 0
         self.frame_reward = 0
         self.highscore = -1000
+
         self.highest_chkpt = 0
         self.speeds = []
         self.prev_int_counter = 0
@@ -106,6 +107,7 @@ class ROARppoEnvE2E(ROAREnv):
         self.steps+=1
         for i in range(1):
             # throttle=(action[i*3]+0.5)/2+1
+            action = np.reshape(action, (-1))
             check = (action[i*3+0]+0.5)/2+1
             if check > 0.5:
                 throttle = 1
@@ -113,7 +115,6 @@ class ROARppoEnvE2E(ROAREnv):
             else:
                 throttle = 0
                 braking = .8
-
 
             steering = action[i*3+1]/5
 

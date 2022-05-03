@@ -234,6 +234,7 @@ def main(pass_num):
 
     # Try to find latest model path if we have trained previously
     latest_model_path = find_latest_model(MODEL_DIR)
+    print(latest_model_path)
     # FIXME wandb may continue old run if the run crashes before it is logged
     if latest_model_path is None:
         # Create new wandb run

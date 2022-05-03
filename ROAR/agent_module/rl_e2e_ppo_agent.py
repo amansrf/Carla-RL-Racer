@@ -92,6 +92,7 @@ class RLe2ePPOAgent(Agent):
         #print(self.vehicle.transform)
         #self.local_planner.run_in_series()#TO REMOVE
 
+
         self.vehicle = vehicle
         self.bbox_step()
 

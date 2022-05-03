@@ -172,6 +172,7 @@ class CarlaRunner:
                         should_restart_lap = True
 
                     if should_restart_lap:
+                        self.logger.info("gg!")
                         should_continue = False
 
                 # check for exiting condition
