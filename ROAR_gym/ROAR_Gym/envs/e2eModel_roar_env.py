@@ -92,7 +92,7 @@ class ROARppoEnvE2E(ROAREnv):
         self.death_line_dis = 5
         ## used to check if stalled
         self.stopped_counter = 0
-        self.stopped_max_count = 10
+        self.stopped_max_count = 100
         # used to track episode highspeed
         self.speed = 0
         self.current_hs = 0
@@ -217,6 +217,9 @@ class ROARppoEnvE2E(ROAREnv):
         #     return True
         if self.carla_runner.get_num_collision() > self.max_collision_allowed:
             print("man")
+            return True
+        elif self.overlap:
+            print("pls")
             return True
         elif self.agent.finish_loop:
             print("halp")

@@ -17,8 +17,14 @@ misc_params = {
 
 spawn_params = {
   "num_spawn_pts": 13,  # Last one is 12
-  "init_spawn_pt": 1,
+  "init_spawn_pt": 4,
   "dynamic_spawn": False,  # True if start at different spawn locations on reset
+
+  # Spawn Guide:
+  # 1 = Roundabout
+  # 5 = Sharpest Turn
+  # 8 = Leap of Faith (Height of Leap is roughly 360)
+  # 12 = "Race Start"
 
   # Dynamic Type Choice:
   #   1. "uniform random" - Choose from uniform random distribution in range(init_spawn_point:num_spawn_pts)
