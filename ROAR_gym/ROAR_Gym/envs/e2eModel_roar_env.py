@@ -15,6 +15,7 @@ from collections import OrderedDict
 from gym.spaces import Discrete, Box
 import cv2
 import wandb
+import time
 
 
 # -------------------------------- ROS Imports ------------------------------- #
@@ -312,6 +313,13 @@ class ROARppoEnvE2E(ROAREnv):
         self.crash_step=0
         self.reward_step=0
         self.end_check=False
+
+        while self.ros_node.event != 0:
+            print("waiting for reset")
+            rclpy.spin_once(self.ros_node, timeout_sec=0.2)
+            time.sleep(1)
+
+
         return self._get_obs()
 
     def wandb_logger(self):
