@@ -5,7 +5,7 @@ from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDur
 
 from carla_msgs.msg import CarlaEgoVehicleControl
 from sensor_msgs.msg import Image
-from std_msgs.msg import Float32
+from std_msgs.msg import Float32, Header
 
 import message_filters
 from message_filters import TimeSynchronizer, Subscriber, ApproximateTimeSynchronizer
@@ -23,7 +23,7 @@ class RLStreamer(Node):
             reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT,
             durability=QoSDurabilityPolicy.RMW_QOS_POLICY_DURABILITY_VOLATILE,
             liveliness=QoSLivelinessPolicy.RMW_QOS_POLICY_LIVELINESS_AUTOMATIC,
-            depth=10,
+            depth=1,
         )
         
         self.ogm_shape = (84,84)
@@ -35,10 +35,10 @@ class RLStreamer(Node):
 
         self.bridge = CvBridge()
 
-        self.bev_image = None
+        self.bev_image = np.zeros((self.ogm_shape[0], self.ogm_shape[1], 3))
         self.bev_locked = False
 
-        self.ogm = np.zeros((self.ogm_shape[0], self.ogm_shape[1], self.ogm_channels, self.ogm_stack_size))
+        self.ogm = np.zeros((self.ogm_stack_size, self.ogm_channels, self.ogm_shape[0], self.ogm_shape[1]))
 
         self.event = 0
 
@@ -46,27 +46,44 @@ class RLStreamer(Node):
         # self.event_sub = self.create_subscription(Float32, '/state_streamer/event', self.reward_callback, 1)
 
         self.bev_sub   = Subscriber(self, Image, '/bev_publisher/bev_image', qos_profile=qos_profile)
-        self.event_sub = Subscriber(self, Float32, '/state_streamer/event', qos_profile=qos_profile)
+        self.event_sub = Subscriber(self, Header, '/state_streamer/event_header', qos_profile=qos_profile)
 
         sync_msg = ApproximateTimeSynchronizer(
-            [self.rg_mask_sub, self.flood_mask_sub],
+            [self.bev_sub, self.event_sub],
             queue_size=10,
             slop=0.1,
-            allow_headerless=False
+            allow_headerless=True
         )
         sync_msg.registerCallback(self.sync_callback)
 
     def sync_callback(self, bev_msg, event_msg):
 
         # ------------------------------- Handle Event ------------------------------- #
-        self.event = event_msg.data
+        self.event = float(event_msg.frame_id)
+        print(self.event)
+        self.event = 0
 
         # -------------------------------- Handle BEV -------------------------------- #
         # Set Lock to prevent access during write
         self.bev_locked = True
 
-        # Converting ROS image message to RGB
+        # Converting ROS image message to BGR
         self.bev_image = self.bridge.imgmsg_to_cv2(bev_msg, desired_encoding='bgr8')
+
+        print("\n\n\n-------------------\n the max of bev is:", np.max(self.bev_image), "\n\n\n-------------------")
+        
+        cv2.imshow("BEV from RL Streamer", 255*self.bev_image)
+        cv2.waitKey(1)
+        self.bev_image = np.array(self.bev_image, dtype='<f8')
+        self.bev_image = np.stack(
+            [
+                self.bev_image[:,:,0],
+                self.bev_image[:,:,1],
+                self.bev_image[:,:,2]
+            ],
+            axis = 0,
+        )
+        assert self.bev_image.shape == (3,84,84), "Received BEV Image is not of the correct shape"
         self.update_occupancy_map()
 
         # Remove lock as write is now finished
@@ -110,6 +127,14 @@ class RLStreamer(Node):
             return 0
 
     def update_occupancy_map(self):
-        # self.ogm.
+
+        # Push old bevs up the ogm stack
+        self.ogm[1:self.ogm_stack_size-1, :, :, :] = self.ogm[0:self.ogm_stack_size-2, :, :, :]
+        self.ogm[0, :, :, :] = self.bev_image
+        self.ogm = np.array(self.ogm, dtype="<f8")
+        
+        assert self.ogm.shape == (self.ogm_stack_size, self.ogm_channels, self.ogm_shape[0], self.ogm_shape[1]), "Stacked OGM Shape incorrect"
+        # return self.ogm
 
     def get_occupancy_map(self):
+        return self.ogm

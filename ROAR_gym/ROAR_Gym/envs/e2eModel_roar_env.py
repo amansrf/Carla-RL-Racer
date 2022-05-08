@@ -117,25 +117,26 @@ class ROARppoEnvE2E(ROAREnv):
         self.steps+=1
        
         for i in range(1):
-            throttle = 0.0
+            throttle = 0.25
             steering = action[i*3+1]/5
             braking = 0.5
 
             if self.deadzone_trigger and abs(steering) < self.deadzone_level:
                 steering = 0.0
 
-            # self.agent.kwargs["control"] = VehicleControl(throttle=throttle,
-            #                                               steering=steering,
-            #                                               braking=braking)
+            self.agent.kwargs["control"] = VehicleControl(throttle=throttle,
+                                                          steering=steering,
+                                                          braking=braking)
             # print(throttle, steering, braking, float(braking))
 
             self.ros_node.pub_control(throttle=float(throttle), steer=float(steering), brake=float(braking))
 
-            rclpy.spin_once(self.ros_node, timeout_sec=0.2)
+            rclpy.spin_once(self.ros_node, timeout_sec=0.05)
+            # cv2.imshow("BEV from RL!!!", self.ros_node.bev_image)
 
-            cv2.imshow("BEV from RL!!!", self.ros_node.bev_image)
+            # cv2.imshow("BEV from RL!!!", self.ros_node.bev_image)
 
-            cv2.waitKey(1)
+            # cv2.waitKey(1)
             
             reward, is_done = super(ROARppoEnvE2E, self).step(action)
             rewards.append(reward)
@@ -156,20 +157,20 @@ class ROARppoEnvE2E(ROAREnv):
 
     def _get_info(self) -> dict:
         info_dict = OrderedDict()
-        info_dict["Current HIGHSCORE"] = self.highscore
-        info_dict["Current Actual HIGHSCORE"] = self.high_actual_score
-        info_dict["Furthest Checkpoint"] = self.highest_chkpt*self.agent.interval
-        info_dict["episode reward"] = self.ep_rewards
-        info_dict["episode actual reward"] = self.ep_actual_reward
-        info_dict["checkpoints"] = self.agent.int_counter*self.agent.interval
-        info_dict["reward"] = self.frame_reward
-        info_dict["largest_steps"] = self.largest_steps
-        info_dict["highest_speed"] = self.highspeed
-        info_dict["complete_state"]=self.complete_loop
-        info_dict["avg10_checkpoints"]=np.average(self.his_checkpoint)
-        info_dict["avg10_score"]=np.average(self.his_score)
-        info_dict["avg10_actual_score"]=np.average(self.his_actual_score)
-        # info_dict["throttle"] = action[0]
+        info_dict["Current HIGHSCORE"] = 0 #self.highscore
+        # info_dict["Current Actual HIGHSCORE"] = self.high_actual_score
+        # info_dict["Furthest Checkpoint"] = self.highest_chkpt*self.agent.interval
+        # info_dict["episode reward"] = self.ep_rewards
+        # info_dict["episode actual reward"] = self.ep_actual_reward
+        # info_dict["checkpoints"] = self.agent.int_counter*self.agent.interval
+        # info_dict["reward"] = self.frame_reward
+        # info_dict["largest_steps"] = self.largest_steps
+        # info_dict["highest_speed"] = self.highspeed
+        # info_dict["complete_state"]=self.complete_loop
+        # info_dict["avg10_checkpoints"]=np.average(self.his_checkpoint)
+        # info_dict["avg10_score"]=np.average(self.his_score)
+        # info_dict["avg10_actual_score"]=np.average(self.his_actual_score)
+        # # info_dict["throttle"] = action[0]
         # info_dict["steering"] = action[1]
         # info_dict["braking"] = action[2]
         return info_dict
@@ -247,12 +248,15 @@ class ROARppoEnvE2E(ROAREnv):
             # ---------------------------------------------------------------------------- #
             #                                 BEV Based OGM                                #
             # ---------------------------------------------------------------------------- #
-            map_list = self.ros_node.occupancy_map()
-
-
-
+            map_list = self.ros_node.get_occupancy_map()
+            print(map_list.shape)
             cv2.imshow("data", np.hstack(np.hstack(map_list))) # uncomment to show occu map
             cv2.waitKey(1)
+
+
+
+            # cv2.imshow("data", np.hstack(np.hstack(map_list))) # uncomment to show occu map
+            # cv2.waitKey(1)
             # yaw_angle=self.agent.vehicle.transform.rotation.yaw
             # velocity=self.agent.vehicle.get_speed(self.agent.vehicle)
             # data[0,0,2]=velocity
@@ -263,7 +267,8 @@ class ROARppoEnvE2E(ROAREnv):
             # data_input=np.zeros_like(map_list)
             # data_input[0,:13]=data
             #print(map_list[:,:-1].shape)
-            return map_list[:,:-1]
+            # return map_list[:,:-1]
+            return map_list
 
         else:
             data = self.agent.occupancy_map.get_map(transform=self.agent.vehicle.transform,

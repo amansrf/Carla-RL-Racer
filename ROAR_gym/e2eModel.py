@@ -76,8 +76,8 @@ sys.path.append(Path(os.getcwd()).parent.as_posix())
 
 # imports from config files
 from configurations.ppo_configuration import PPO_params, misc_params, wandb_saves
-agent_config = AgentConfig.parse_file(Path("ROAR_gym/configurations/agent_configuration.json"))
-carla_config = CarlaConfig.parse_file(Path("ROAR_gym/configurations/carla_configuration.json"))
+agent_config = AgentConfig.parse_file(Path("/home/roar/ROAR_RL/ROAR_gym/configurations/agent_configuration.json"))
+carla_config = CarlaConfig.parse_file(Path("/home/roar/ROAR_RL/ROAR_gym/configurations/carla_configuration.json"))
 
 # Setup for the loggers
 logging.getLogger("tensorflow").setLevel(logging.ERROR)
@@ -93,7 +93,7 @@ except:
 CUDA_VISIBLE_DEVICES = 1
 RUN_FPS = misc_params["run_fps"]
 MODEL_DIR = misc_params["model_directory"]
-WANDB_CONFIG_DIR = "ROAR_gym/configurations/wandb_configuration.json"
+WANDB_CONFIG_DIR = "/home/roar/ROAR_RL/ROAR_gym/configurations/wandb_configuration.json"
 
 
 def json_read_write(file, load_var=None, mode='r'):
