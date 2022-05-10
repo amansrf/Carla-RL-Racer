@@ -27,7 +27,7 @@ class Agent(ABC):
 
     """
 
-    def __init__(self, vehicle: Vehicle, agent_settings: AgentConfig, imu: Optional[IMUData] = None,
+    def __init__(self, agent_settings: AgentConfig, imu: Optional[IMUData] = None,
                  should_init_default_cam=True, **kwargs):
         """
         Initialize cameras, output folder, and logging utilities
@@ -38,7 +38,7 @@ class Agent(ABC):
             imu: IMU data (will be deprecated to be passed in like this)
         """
         self.logger = logging.getLogger(__name__)
-        self.vehicle = vehicle
+        # self.vehicle = vehicle
         self.agent_settings = agent_settings
         self.front_rgb_camera: Optional[Camera] = agent_settings.front_rgb_cam
         self.front_depth_camera: Optional[Camera] = agent_settings.front_depth_cam

@@ -23,7 +23,7 @@ class RLStreamer(Node):
             reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT,
             durability=QoSDurabilityPolicy.RMW_QOS_POLICY_DURABILITY_VOLATILE,
             liveliness=QoSLivelinessPolicy.RMW_QOS_POLICY_LIVELINESS_AUTOMATIC,
-            depth=1,
+            depth=20,
         )
         
         self.ogm_shape = (84,84)
@@ -58,10 +58,12 @@ class RLStreamer(Node):
 
     def sync_callback(self, bev_msg, event_msg):
 
+        print("Callback reporting for duty!\n")
+
         # ------------------------------- Handle Event ------------------------------- #
         self.event = float(event_msg.frame_id)
-        print(self.event)
-        self.event = 0
+        # print(self.event)
+        # self.event = 0
 
         # -------------------------------- Handle BEV -------------------------------- #
         # Set Lock to prevent access during write
@@ -70,7 +72,7 @@ class RLStreamer(Node):
         # Converting ROS image message to BGR
         self.bev_image = self.bridge.imgmsg_to_cv2(bev_msg, desired_encoding='bgr8')
 
-        print("\n\n\n-------------------\n the max of bev is:", np.max(self.bev_image), "\n\n\n-------------------")
+        # print("\n\n\n-------------------\n the max of bev is:", np.max(self.bev_image), "\n\n\n-------------------")
         
         cv2.imshow("BEV from RL Streamer", 255*self.bev_image)
         cv2.waitKey(1)
@@ -83,6 +85,7 @@ class RLStreamer(Node):
             ],
             axis = 0,
         )
+        # print(self.bev_image.shape)
         assert self.bev_image.shape == (3,84,84), "Received BEV Image is not of the correct shape"
         self.update_occupancy_map()
 
@@ -129,9 +132,16 @@ class RLStreamer(Node):
     def update_occupancy_map(self):
 
         # Push old bevs up the ogm stack
-        self.ogm[1:self.ogm_stack_size-1, :, :, :] = self.ogm[0:self.ogm_stack_size-2, :, :, :]
-        self.ogm[0, :, :, :] = self.bev_image
+        self.ogm[3] = self.ogm[2]
+        self.ogm[2] = self.ogm[1]
+        self.ogm[1] = self.ogm[0]
+        self.ogm[0] = self.bev_image
+        # self.ogm[1:self.ogm_stack_size-1, :, :, :] = self.ogm[0:self.ogm_stack_size-2, :, :, :]
+        # self.ogm[0, :, :, :] = self.bev_image
         self.ogm = np.array(self.ogm, dtype="<f8")
+
+        # cv2.imshow("ogm from stream", self.ogm) # uncomment to show occu map
+        # cv2.waitKey(1)
         
         assert self.ogm.shape == (self.ogm_stack_size, self.ogm_channels, self.ogm_shape[0], self.ogm_shape[1]), "Stacked OGM Shape incorrect"
         # return self.ogm

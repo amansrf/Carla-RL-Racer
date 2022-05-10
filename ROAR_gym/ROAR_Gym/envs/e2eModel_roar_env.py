@@ -97,14 +97,18 @@ class ROARppoEnvE2E(ROAREnv):
         self.speed = 0
         self.current_hs = 0
         # used to check laptime
-        if self.carla_runner.world is not None:
-            self.last_sim_time = self.carla_runner.world.hud.simulation_time
-        else:
-            self.last_sim_time = 0
-        self.sim_lap_time = 0
+        # if self.carla_runner.world is not None:
+        #     self.last_sim_time = self.carla_runner.world.hud.simulation_time
+        # else:
+        #     self.last_sim_time = 0
+        # self.sim_lap_time = 0
 
         self.deadzone_trigger = True
         self.deadzone_level = 0.001
+        self.str_val = 0.0001
+
+        self.longest_life = 0
+
 
 
 
@@ -124,6 +128,7 @@ class ROARppoEnvE2E(ROAREnv):
 
             if self.deadzone_trigger and abs(steering) < self.deadzone_level:
                 steering = 0.0
+            self.str_val = steering
 
             self.agent.kwargs["control"] = VehicleControl(throttle=throttle,
                                                           steering=steering,
@@ -132,8 +137,9 @@ class ROARppoEnvE2E(ROAREnv):
 
             self.ros_node.pub_control(throttle=float(throttle), steer=float(steering), brake=float(braking))
 
-            rclpy.spin_once(self.ros_node, timeout_sec=0.05)
+            rclpy.spin_once(self.ros_node, timeout_sec=0.1)
             # cv2.imshow("BEV from RL!!!", self.ros_node.bev_image)
+            print("in step", self.ros_node.event )
 
             # cv2.imshow("BEV from RL!!!", self.ros_node.bev_image)
 
@@ -141,7 +147,7 @@ class ROARppoEnvE2E(ROAREnv):
             
             reward, is_done = super(ROARppoEnvE2E, self).step(action)
             rewards.append(reward)
-            self.render() # NEEDED?
+            # self.render() # NEEDED?
             if is_done:
                 break
 
@@ -153,12 +159,13 @@ class ROARppoEnvE2E(ROAREnv):
         if (is_done):
             self.crash_check = False #maybe move to reset funciton? idk
             # self.wandb_logger()
-            # self.update_highscore() #prolly keep these out
+            self.update_highscore() #prolly keep these out
         return np.array(obs), self.frame_reward, self._terminal(), self._get_info()
 
     def _get_info(self) -> dict:
         info_dict = OrderedDict()
-        info_dict["Current HIGHSCORE"] = 0 #self.highscore
+        info_dict["Current num steps"] = self.steps
+        info_dict["longest life"] = self.longest_life
         # info_dict["Current Actual HIGHSCORE"] = self.high_actual_score
         # info_dict["Furthest Checkpoint"] = self.highest_chkpt*self.agent.interval
         # info_dict["episode reward"] = self.ep_rewards
@@ -177,24 +184,24 @@ class ROARppoEnvE2E(ROAREnv):
         return info_dict
 
     def update_highscore(self):
-        if self.ep_rewards > self.highscore:
-            self.highscore = self.ep_rewards
-        if self.agent.int_counter > self.highest_chkpt:
-            self.highest_chkpt = self.agent.int_counter
-        if self.current_hs > self.highspeed:
-            self.highspeed = self.current_hs
-        self.current_hs = 0
+        # if self.ep_rewards > self.highscore:
+        #     self.highscore = self.ep_rewards
+        # if self.agent.int_counter > self.highest_chkpt:
+        #     self.highest_chkpt = self.agent.int_counter
+        # if self.current_hs > self.highspeed:
+        #     self.highspeed = self.current_hs
+        # self.current_hs = 0
 
-        if self.carla_runner.world is not None:
-            current_time = self.carla_runner.world.hud.simulation_time
-            if self.agent.int_counter * self.agent.interval < 5175:
-                self.sim_lap_time = 400
-            else:
-                self.sim_lap_time = current_time - self.last_sim_time
-            self.last_sim_time = current_time
-        else:
-            self.sim_lap_time = 0
-            self.last_sim_time = 0
+        # if self.carla_runner.world is not None:
+        #     current_time = self.carla_runner.world.hud.simulation_time
+        #     if self.agent.int_counter * self.agent.interval < 5175:
+        #         self.sim_lap_time = 400
+        #     else:
+        #         self.sim_lap_time = current_time - self.last_sim_time
+        #     self.last_sim_time = current_time
+        # else:
+        #     self.sim_lap_time = 0
+        #     self.last_sim_time = 0
         return
 
 
@@ -219,7 +226,7 @@ class ROARppoEnvE2E(ROAREnv):
     def get_reward(self) -> float:
         # Life reward
         reward = 1
-        if self.agent.vehicle.control.steering == 0.0:
+        if self.str_val == 0.0:
             reward += 3
 
         if self.crash_check:
@@ -238,6 +245,7 @@ class ROARppoEnvE2E(ROAREnv):
         #                  Hardware Version for Crash Reward (Penalty)                 #
         # ---------------------------------------------------------------------------- #
         if self.ros_node.get_num_collision() > self.max_collision_allowed:
+            print('help me')
             reward -= 1000
             self.crash_check = True
         # ---------------------------------------------------------------------------- #
@@ -250,12 +258,12 @@ class ROARppoEnvE2E(ROAREnv):
             #                                 BEV Based OGM                                #
             # ---------------------------------------------------------------------------- #
             map_list = self.ros_node.get_occupancy_map()
-            print(map_list.shape)
-            cv2.imshow("data", np.hstack(np.hstack(map_list))) # uncomment to show occu map
-            cv2.waitKey(1)
+            # print(map_list.shape)
 
 
-
+            for j in range(4):
+                map_list[j][2][59:67,40:45] = 0.8
+                # map_list[j][3][59:67,40:45] = 0.8
             # cv2.imshow("data", np.hstack(np.hstack(map_list))) # uncomment to show occu map
             # cv2.waitKey(1)
             # yaw_angle=self.agent.vehicle.transform.rotation.yaw
@@ -269,6 +277,8 @@ class ROARppoEnvE2E(ROAREnv):
             # data_input[0,:13]=data
             #print(map_list[:,:-1].shape)
             # return map_list[:,:-1]
+            cv2.imshow("data", np.hstack(np.hstack(map_list))) # uncomment to show occu map
+            cv2.waitKey(1)
             return map_list
 
         else:
@@ -294,28 +304,30 @@ class ROARppoEnvE2E(ROAREnv):
     #3location 3 rotation 3velocity 20 waypoline locations 20 wayline rewards
 
     def reset(self) -> Any:
-        if len(self.his_checkpoint)>=10:
-            self.his_checkpoint=self.his_checkpoint[-10:]
-            self.his_score=self.his_score[-10:]
-            self.his_actual_score=self.his_actual_score[-10:]
-        if self.agent:
-            self.his_checkpoint.append(self.agent.int_counter*self.agent.interval)
-            self.his_score.append(self.ep_rewards)
-            self.his_actual_score.append(self.ep_actual_reward)
+        # if len(self.his_checkpoint)>=10:
+        #     self.his_checkpoint=self.his_checkpoint[-10:]
+        #     self.his_score=self.his_score[-10:]
+        #     self.his_actual_score=self.his_actual_score[-10:]
+        # if self.agent:
+        #     self.his_checkpoint.append(self.agent.int_counter*self.agent.interval)
+        #     self.his_score.append(self.ep_rewards)
+        #     self.his_actual_score.append(self.ep_actual_reward)
         self.ep_rewards = 0
         self.ep_actual_rewards = 0
-        if self.steps>self.largest_steps and not self.complete_loop:
-            self.largest_steps=self.steps
-        elif self.complete_loop and self.agent.finish_loop and self.steps<self.largest_steps:
-            self.largest_steps=self.steps
+        # if self.steps>self.largest_steps and not self.complete_loop:
+        #     self.largest_steps=self.steps
+        # elif self.complete_loop and self.agent.finish_loop and self.steps<self.largest_steps:
+        #     self.largest_steps=self.steps
         super(ROARppoEnvE2E, self).reset()
         self.steps=0
         self.crash_step=0
         self.reward_step=0
         self.end_check=False
+        self.ros_node.pub_control(throttle=float(0), steer=float(0), brake=float(0))
 
         while self.ros_node.event != 0:
-            print("waiting for reset")
+            # print("waiting for reset")
+            print("waiting", self.ros_node.event)
             rclpy.spin_once(self.ros_node, timeout_sec=0.2)
             time.sleep(1)
 

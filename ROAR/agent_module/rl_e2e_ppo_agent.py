@@ -18,8 +18,10 @@ import scipy.stats
 from collections import deque
 
 class RLe2ePPOAgent(Agent):
-    def __init__(self, vehicle: Vehicle, agent_settings: AgentConfig, **kwargs):
-        super().__init__(vehicle, agent_settings, **kwargs)
+    # def __init__(self, vehicle: Vehicle, agent_settings: AgentConfig, **kwargs):
+    #     super().__init__(vehicle, agent_settings, **kwargs)
+    def __init__(self, agent_settings: AgentConfig, **kwargs):
+        super().__init__(agent_settings, **kwargs)
         # self.route_file_path = Path(self.agent_settings.waypoint_file_path)#TO REMOVE
         # self.pid_controller = PIDController(agent=self, steering_boundary=(-1, 1), throttle_boundary=(0, 1))#TO REMOVE
         self.mission_planner = WaypointFollowingMissionPlanner(agent=self)
@@ -70,8 +72,9 @@ class RLe2ePPOAgent(Agent):
             self.bbox_step()
         self.finish_loop=False
 
-    def reset(self,vehicle: Vehicle):
-        self.vehicle=vehicle
+    # def reset(self,vehicle: Vehicle):
+    def reset(self):
+        # self.vehicle=vehicle
         self.int_counter = 0
         self.cross_reward=0
         self.counter = 0
@@ -122,34 +125,34 @@ class RLe2ePPOAgent(Agent):
             self.finish_loop=True
         currentframe_crossed = []
 
-        while(self.vehicle.transform.location.x!=0):
-            crossed, dist = self.bbox_list[self.int_counter%len(self.bbox_list)].has_crossed(self.vehicle.transform)
-            if crossed:
-                self.cross_reward+=crossed
-                # self.occupancy_map.del_bbox(self.bbox_list[self.int_counter])
-                currentframe_crossed.append(self.bbox_list[self.int_counter%len(self.bbox_list)])
-                self.int_counter += 1
-            else:
-                break
-        if update_queue:
-            if len(self.frame_queue) < 4 and len(currentframe_crossed):
-                self.frame_queue.append(currentframe_crossed)
-            elif len(currentframe_crossed):
-                self.frame_queue.popleft()
-                self.frame_queue.append(currentframe_crossed)
-            else:
-                self.frame_queue.append(None)
-            # add vehicle tranform
-            if len(self.vt_queue) < 4:
-                self.vt_queue.append(self.vehicle.transform)
-            else:
-                self.vt_queue.popleft()
-                self.vt_queue.append(self.vehicle.transform)
-        else:
-            if self.frame_queue[-1]==None:
-                self.frame_queue[-1]=currentframe_crossed
-            else:
-                self.frame_queue[-1].extend(currentframe_crossed)
+        # while(self.vehicle.transform.location.x!=0):
+        #     crossed, dist = self.bbox_list[self.int_counter%len(self.bbox_list)].has_crossed(self.vehicle.transform)
+        #     if crossed:
+        #         self.cross_reward+=crossed
+        #         # self.occupancy_map.del_bbox(self.bbox_list[self.int_counter])
+        #         currentframe_crossed.append(self.bbox_list[self.int_counter%len(self.bbox_list)])
+        #         self.int_counter += 1
+        #     else:
+        #         break
+        # if update_queue:
+        #     if len(self.frame_queue) < 4 and len(currentframe_crossed):
+        #         self.frame_queue.append(currentframe_crossed)
+        #     elif len(currentframe_crossed):
+        #         self.frame_queue.popleft()
+        #         self.frame_queue.append(currentframe_crossed)
+        #     else:
+        #         self.frame_queue.append(None)
+        #     # add vehicle tranform
+        #     if len(self.vt_queue) < 4:
+        #         self.vt_queue.append(self.vehicle.transform)
+        #     else:
+        #         self.vt_queue.popleft()
+        #         self.vt_queue.append(self.vehicle.transform)
+        # else:
+        #     if self.frame_queue[-1]==None:
+        #         self.frame_queue[-1]=currentframe_crossed
+        #     else:
+        #         self.frame_queue[-1].extend(currentframe_crossed)
 
 
     def _get_all_bbox(self):

@@ -10,7 +10,7 @@ sys.path.append(Path(os.getcwd()).parent.as_posix())
 misc_params = {
   "env_name": 'roar-e2e-ppo-v0',
   "run_fps": 8,  # TODO Link to the environment RUN_FPS
-  "model_directory": Path("./output/PPOe2e_HardML_2"),
+  "model_directory": Path("./output/PPOe2e_HardML_6"),
   "run_name": "Run dummy2",
   "total_timesteps": int(1e6),
 }
@@ -21,15 +21,15 @@ wandb_saves = {
 }
 
 PPO_params = dict(
-  learning_rate=0.00001,  # be smaller 2.5e-4
-  n_steps=1024 * misc_params["run_fps"],
+  learning_rate=0.0001,  # be smaller 2.5e-4
+  n_steps=1024 * misc_params["run_fps"]*4,
   batch_size=64,  # mini_batch_size = 256?
   # n_epochs=10,
   gamma=0.99,  # rec range .9 - .99
   ent_coef=.00,  # rec range .0 - .01
   # gae_lambda=0.95,
   # clip_range_vf=None,
-  # vf_coef=0.5,
+  vf_coef=0.0001,
   # max_grad_norm=0.5,
   # use_sde=True,
   # sde_sample_freq=5,

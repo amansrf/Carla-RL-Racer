@@ -77,7 +77,7 @@ sys.path.append(Path(os.getcwd()).parent.as_posix())
 # imports from config files
 from configurations.ppo_configuration import PPO_params, misc_params, wandb_saves
 agent_config = AgentConfig.parse_file(Path("/home/roar/ROAR_RL/ROAR_gym/configurations/agent_configuration.json"))
-carla_config = CarlaConfig.parse_file(Path("/home/roar/ROAR_RL/ROAR_gym/configurations/carla_configuration.json"))
+# carla_config = CarlaConfig.parse_file(Path("/home/roar/ROAR_RL/ROAR_gym/configurations/carla_configuration.json"))
 
 # Setup for the loggers
 logging.getLogger("tensorflow").setLevel(logging.ERROR)
@@ -204,7 +204,7 @@ def main(pass_num):
         id=misc_params["env_name"],
         params={
             "agent_config": agent_config,
-            "carla_config": carla_config,
+            # "carla_config": carla_config,
             "ego_agent_class": RLe2ePPOAgent,
         }
     )
@@ -260,11 +260,20 @@ def main(pass_num):
             load=True,
         )
 
+        custom_objects = {
+            "learning_rate": 0.0001,
+            "lr_schedule": lambda _: 0.0,
+            "clip_range": lambda _: 0.0,
+
+        }
+
+
         # Load the model
         model = PPO.load(
             latest_model_path,
             env=env,
             policy_kwargs=policy_kwargs,
+            custom_objects=custom_objects,
             tensorboard_log=f"runs/{run.name}",  # TODO add "tensorboard" to logdir name
             **training_kwargs,
         )
