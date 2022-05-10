@@ -164,8 +164,9 @@ class ROARppoEnvE2E(ROAREnv):
 
     def _get_info(self) -> dict:
         info_dict = OrderedDict()
-        info_dict["Current num steps"] = self.steps
-        info_dict["longest life"] = self.longest_life
+        info_dict["Longest Life"] = self.longest_life
+        info_dict["Current Lifetime"] = self.steps
+        info_dict["Steering Val"] = self.steps
         # info_dict["Current Actual HIGHSCORE"] = self.high_actual_score
         # info_dict["Furthest Checkpoint"] = self.highest_chkpt*self.agent.interval
         # info_dict["episode reward"] = self.ep_rewards
@@ -191,6 +192,10 @@ class ROARppoEnvE2E(ROAREnv):
         # if self.current_hs > self.highspeed:
         #     self.highspeed = self.current_hs
         # self.current_hs = 0
+
+        if self.steps > self.longest_life:
+            self.longest_life = self.steps
+
 
         # if self.carla_runner.world is not None:
         #     current_time = self.carla_runner.world.hud.simulation_time
