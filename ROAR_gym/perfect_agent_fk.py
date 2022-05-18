@@ -115,8 +115,8 @@ class RLe2ePPOEvalAgent(Agent):
             device=th.device('cuda:0' if th.cuda.is_available() else 'cpu'),
             # _init_setup_model=True,
         )
-        training_kwargs = PPO_params
-        self.model = PPO.load(Path(self.model_path), **training_kwargs)
+        self.training_kwargs = PPO_params
+        self.model = PPO.load(Path(self.model_path), **self.training_kwargs)
 
         #self.model = PPO.load(Path("C:/Users/micha/Desktop/ROAR_MEng/ROAR/ROAR_gym/output/PPOe2e_Run_5/logs/rl_model__steps.zip"), policy_kwargs = policy_kwargs)
 
@@ -158,6 +158,7 @@ class RLe2ePPOEvalAgent(Agent):
         self.deadzone_level = 0.001
 
     def reset(self,vehicle: Vehicle):
+        # self.model = PPO.load(Path(self.model_path), **self.training_kwargs)
         self.vehicle=vehicle
         self.int_counter = 0
         self.cross_reward=0

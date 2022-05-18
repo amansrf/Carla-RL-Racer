@@ -223,8 +223,10 @@ class CarlaRunner:
     def restart_on_lap(self, agent, use_manual_control: bool, starting_lap_count: int):
         self.logger.info(f"Restarting on Lap {starting_lap_count}")
         self.on_finish()
-        self.set_carla_world()
-        agent.__init__(vehicle=agent.vehicle, agent_settings=agent.agent_settings)
+        # self.__init__(self.carla_settings,self.agent_settings,self.npc_agent_class,self.competition_mode,lap_count=self.lap_count)
+        # self.set_carla_world()
+        agent.reset(vehicle=self.set_carla_world())
+        # agent.__init__(vehicle=agent.vehicle, agent_settings=agent.agent_settings)
         self.start_game_loop(agent=agent, use_manual_control=use_manual_control,
                              starting_lap_count=starting_lap_count)
 

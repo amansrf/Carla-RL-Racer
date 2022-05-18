@@ -52,6 +52,7 @@ def run(agent_class, agent_config_file_path: Path, carla_config_file_path: Path,
                                agent_settings=agent_config,
                                npc_agent_class=PurePursuitAgent,
                                competition_mode=True,
+                               start_bbox=np.array([-815, 20, -760, -770, 120, -600]),
                                lap_count=num_laps)
     try:
         my_vehicle = carla_runner.set_carla_world()
@@ -77,7 +78,7 @@ def suppress_warnings():
 def main():
     suppress_warnings()
     agent_class = RLe2ePPOEvalAgent
-    num_trials = 3
+    num_trials = 1
     total_score = 0
     num_laps = 2
     table = PrettyTable()
