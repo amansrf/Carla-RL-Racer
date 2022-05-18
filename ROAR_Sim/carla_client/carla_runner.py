@@ -148,7 +148,8 @@ class CarlaRunner:
 
                 # make sure the program does not run above 60 frames per second
                 # this allow proper synchrony between server and client
-                clock.tick_busy_loop(60)
+                #clock.tick_busy_loop(60)
+                clock.tick()
                 should_continue, carla_control = self.controller.parse_events(client=self.client,
                                                                               world=self.world,
                                                                               clock=clock)
