@@ -126,6 +126,7 @@ class ROARppoEnvE2E(ROAREnv):
         self.steps+=1
         for i in range(1):
             # throttle=(action[i*3]+0.5)/2+1
+            action = action.reshape((-1))
             check = (action[i*3+0]+0.5)/2+1
             if check > 0.5:
                 throttle = 0.7

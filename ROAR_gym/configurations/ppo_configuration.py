@@ -16,9 +16,9 @@ misc_params = {
 }
 
 spawn_params = {
-  "num_spawn_pts": 13,  # Last one is 12
-  "init_spawn_pt": 4,
-  "dynamic_spawn": False,  # True if start at different spawn locations on reset
+  "num_spawn_pts": 13,  # Last one is 12s
+  "init_spawn_pt": 1,
+  "dynamic_spawn": True,  # True if start at different spawn locations on reset
 
   # Spawn Guide:
   # 1 = Roundabout
@@ -31,7 +31,7 @@ spawn_params = {
   #   2. "linear forward" - After reset spawn point increments by one. Loops back to init after num_spawn_pts reached
   #   3. "linear backward" - After reset decrement spawn point by one. Loops back to num_spawn_pts after init reached
   #   4. "custom spawn pts" - Provide a custom list of spawn points.
-  "dynamic_type": "uniform random",
+  "dynamic_type": "linear forward",
   "custom_list": [4, 9, 0, 12, 7],  # List of custom spawn pts
 
   "spawn_pt_iterator": 0,  # DO NOT TOUCH THIS! Used Internally!
