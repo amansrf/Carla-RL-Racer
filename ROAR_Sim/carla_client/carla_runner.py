@@ -1,3 +1,4 @@
+import time
 import carla
 from carla import ColorConverter as cc
 from ROAR_Sim.carla_client.util.sensors import CollisionSensor
@@ -66,8 +67,10 @@ class CarlaRunner:
         self.vehicle_state = Vehicle()
 
         self.start_simulation_time: Optional[float] = None
+        self.start_real_time: Optional[float] = None
         self.start_vehicle_position: Optional[np.array] = None
         self.end_simulation_time: Optional[float] = None
+        self.end_real_time: Optional[float] = None
         self.end_vehicle_position: Optional[np.array] = None
 
         self.logger = logging.getLogger(__name__)
@@ -142,13 +145,15 @@ class CarlaRunner:
             self.agent.start_module_threads()
             clock = pygame.time.Clock()
             self.start_simulation_time = self.world.hud.simulation_time
+            self.start_real_time = time.time()
             self.start_vehicle_position = self.agent.vehicle.transform.location.to_array()
 
             while True:
 
                 # make sure the program does not run above 60 frames per second
                 # this allow proper synchrony between server and client
-                clock.tick_busy_loop(60)
+                #clock.tick_busy_loop(60)
+                clock.tick()
                 should_continue, carla_control = self.controller.parse_events(client=self.client,
                                                                               world=self.world,
                                                                               clock=clock)
@@ -169,6 +174,7 @@ class CarlaRunner:
                             self.logger.info(f"Going onto Lap {lap_count} out of {self.lap_count}")
 
                     if len(self.world.collision_sensor.history) > 0:
+                        break
                         should_restart_lap = True
 
                     if should_restart_lap:
@@ -212,6 +218,8 @@ class CarlaRunner:
             self.logger.error(f"Error happened, exiting safely. Error: {e}")
         finally:
             if self.competition_mode and should_restart_lap:
+                # self.on_finish
+                # return
                 self.restart_on_lap(agent=agent,
                                     use_manual_control=use_manual_control,
                                     starting_lap_count=lap_count - 1)
@@ -235,6 +243,7 @@ class CarlaRunner:
             self.end_vehicle_position = self.start_vehicle_position
         if self.world is not None:
             self.end_simulation_time = self.world.hud.simulation_time
+            self.end_real_time = time.time()
             self.world.destroy()
             self.logger.debug("All actors are destroyed")
         try:
