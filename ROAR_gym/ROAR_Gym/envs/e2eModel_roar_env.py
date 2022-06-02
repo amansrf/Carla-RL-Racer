@@ -113,6 +113,8 @@ class ROARppoEnvE2E(ROAREnv):
             self.agent_config.spawn_point_id = spawn_params["init_spawn_pt"] - 1
         elif spawn_params["dynamic_type"] == "linear backward":
             self.agent_config.spawn_point_id = spawn_params["init_spawn_pt"] + 1
+        elif spawn_params["dynamic_type"] == "uniform random":
+            self.agent_config.spawn_point_id = np.random.randint(low=1, high=12)
         else:
             self.agent_config.spawn_point_id = spawn_params["init_spawn_pt"]
 

@@ -31,7 +31,7 @@ spawn_params = {
   #   2. "linear forward" - After reset spawn point increments by one. Loops back to init after num_spawn_pts reached
   #   3. "linear backward" - After reset decrement spawn point by one. Loops back to num_spawn_pts after init reached
   #   4. "custom spawn pts" - Provide a custom list of spawn points.
-  "dynamic_type": "linear forward",
+  "dynamic_type": "uniform random",
   "custom_list": [4, 9, 0, 12, 7],  # List of custom spawn pts
 
   "spawn_pt_iterator": 0,  # DO NOT TOUCH THIS! Used Internally!
@@ -44,7 +44,7 @@ wandb_saves = {
 }
 
 PPO_params = dict(
-  learning_rate=0.00001,  # be smaller 2.5e-4
+  learning_rate=0.0001,  # be smaller 2.5e-4
   n_steps=1024 * misc_params["run_fps"],
   batch_size=64,  # mini_batch_size = 256?
   # n_epochs=10,
