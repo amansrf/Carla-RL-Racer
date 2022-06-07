@@ -23,76 +23,25 @@ from collections import deque
 from stable_baselines3.ppo.ppo import PPO
 from ppo_util import find_latest_model, CustomMaxPoolCNN, Atari_PPO_Adapted_CNN
 
-
-# def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
-#     th.nn.init.orthogonal_(layer.weight, std)
-#     th.nn.init.constant_(layer.bias, bias_const)
-#     return layer
-#
-# class Atari_PPO_Adapted_CNN(BaseFeaturesExtractor):
-#     """
-#     Based on https://github.com/DarylRodrigo/rl_lib/blob/master/PPO/Models.py
-#     """
-#     def __init__(self, observation_space: gym.spaces.Box, features_dim: int = 256):
-#         super(Atari_PPO_Adapted_CNN, self).__init__(observation_space,features_dim)
-#         channels = observation_space.shape[0]*observation_space.shape[1]
-#         self.network = nn.Sequential(
-#             # Scale(1/255),
-#             layer_init(nn.Conv2d(channels, 32, 8, stride=4)),
-#             nn.ReLU(),
-#             layer_init(nn.Conv2d(32, 64, 4, stride=2)),
-#             nn.ReLU(),
-#             layer_init(nn.Conv2d(64, 64, 3, stride=1)),
-#             nn.ReLU(),
-#             nn.Flatten(),
-#             layer_init(nn.Linear(3136, features_dim)),
-#             # nn.ReLU(),
-#         )
-#
-#     def forward(self, observations: th.Tensor) -> th.Tensor:
-#         observations=observations.view(observations.shape[0],-1,*observations.shape[3:])
-#         return self.network(observations)
-
-
-
-mode='baseline'
-if mode=='no_map':
-    FRAME_STACK = 1
-else:
-    FRAME_STACK = 4
-
-if mode=='baseline':
-    CONFIG = {
-        "x_res": 84,
-        "y_res": 84
-    }
-else:
-    CONFIG = {
-        # max values are 280x280
-        # original values are 80x80
-        "x_res": 80,
-        "y_res": 80
-    }
-
-
+FRAME_STACK = 4
+CONFIG = {
+    "x_res": 84,
+    "y_res": 84
+}
 
 class RLe2ePPOEvalAgent(Agent):
-
     def __init__(self, vehicle: Vehicle, agent_settings: AgentConfig, **kwargs):
         super().__init__(vehicle, agent_settings, **kwargs)
 
         self.i = 0
-
         self.agent_config = agent_settings
-
         policy_kwargs = dict(
             features_extractor_class=Atari_PPO_Adapted_CNN,
             features_extractor_kwargs=dict(features_dim=256)
         )
-
         spawn_params = {
             "num_spawn_pts": 13,  # Last one is 12
-            "init_spawn_pt": 12,
+            "init_spawn_pt": 8,
             "dynamic_spawn": False,  # True if start at different spawn locations on reset
 
             # Spawn Guide:
@@ -113,31 +62,22 @@ class RLe2ePPOEvalAgent(Agent):
             "spawn_int_map": [91, 0, 140, 224, 312, 442, 556, 730, 782, 898, 1142, 1283, 39],
         }
 
+        spawn_params["init_spawn_pt"] = self.agent_config.spawn_point_id
+
         #print(self.model_path)
         misc_params = {
             "env_name": 'roar-e2e-ppo-v0',
             "run_fps": 8,  # TODO Link to the environment RUN_FPS
-            "model_directory": Path("./output/PPOe2e_Major_FC_Run_1"),
-            "run_name": "Major FC Run 1",
+            "model_directory": Path("./output/PPOe2e_Major_FC_Run_3"),
+            "run_name": "Major FC Run 3",
             "total_timesteps": int(1e6),
         }
         PPO_params = dict(
             learning_rate=0.00001,  # be smaller 2.5e-4
             n_steps=1024 * misc_params["run_fps"],
             batch_size=64,  # mini_batch_size = 256?
-            # n_epochs=10,
             gamma=0.99,  # rec range .9 - .99
             ent_coef=.00,  # rec range .0 - .01
-            # gae_lambda=0.95,
-            # clip_range_vf=None,
-            # vf_coef=0.5,
-            # max_grad_norm=0.5,
-            # use_sde=True,
-            # sde_sample_freq=5,
-            # target_kl=None,
-            # tensorboard_log=(Path(misc_params["model_directory"]) / "tensorboard").as_posix(),
-            # create_eval_env=False,
-            # policy_kwargs=None,
             verbose=1,
             seed=1,
             device=th.device('cuda:0' if th.cuda.is_available() else 'cpu'),
@@ -145,9 +85,12 @@ class RLe2ePPOEvalAgent(Agent):
         )
         training_kwargs = PPO_params
         MODEL_DIR = misc_params["model_directory"]
-        self.model_path = Path("C:/Users/roar/Documents/ROAR_RL_MENG_team/ROAR/ROAR_gym/output/PPOe2e_Major_FC_Run_1/logs/rl_model_10749313_steps.zip")
+        #self.model_path = Path("C:/Users/roar/Documents/ROAR_RL_MENG_team/ROAR/ROAR_gym/output/PPOe2e_Major_FC_Run_1/logs/rl_model_10749313_steps.zip")
+        #self.model_path = Path("C:/Users/roar/Documents/ROAR_RL_MENG_team/ROAR\ROAR_gym/output/PPOe2e_Major_FC_Run_1/logs/rl_model_10701325_steps.zip")
+        self.model_path = None
         if self.model_path == None:
             self.model_path = Path(find_latest_model(MODEL_DIR))
+        print(self.model_path)
         self.model = PPO.load(Path(self.model_path), **training_kwargs)
 
         ######## initilization from agent ##################
@@ -180,27 +123,15 @@ class RLe2ePPOEvalAgent(Agent):
         self.frame_queue = deque([None, None, None], maxlen=4)
         self.vt_queue = deque([None, None, None], maxlen=4)
         #self._get_next_bbox()
+        self.finish_loop = False
         self._get_all_bbox()
         # self.occupancy_map.draw_bbox_list(self.bbox_list)
         for _ in range(4):
             self.bbox_step()
-        self.finish_loop = False
         ##############################################################
 
         ############## initilization from environment ################
-        # self.prev_speed = 0
-        # self.crash_check = False
-        # self.speeds = []
-        # self.prev_int_counter = 0
         self.steps = 0
-        # self.largest_steps = 0
-        # self.highspeed = 0
-        # self.complete_loop = False
-        # self.time_to_waypoint_ratio = 0.25
-        # self.fps = 8
-        # self.death_line_dis = 5
-        # self.stopped_counter = 0
-        # self.stopped_max_count = 100
         self.speed = 0
         self.current_hs = 0
 
@@ -211,8 +142,6 @@ class RLe2ePPOEvalAgent(Agent):
         #     self.last_sim_time = 0
         # self.sim_lap_time = 0
 
-        self.deadzone_trigger = False
-        self.deadzone_level = 0.001
         self.overlap = False
 
         # Spawn initializations
@@ -226,16 +155,16 @@ class RLe2ePPOEvalAgent(Agent):
             self.agent_config.spawn_point_id = spawn_params["init_spawn_pt"]
 
         self.spawn_counter = spawn_int_map[self.agent_config.spawn_point_id]
+        self.int_counter = self.spawn_counter
         print("#########################\n",self.spawn_counter)
 
-       
 
         self.deadzone_trigger = True
         self.deadzone_level = 0.001
 
     def reset(self,vehicle: Vehicle):
         self.vehicle=vehicle
-        self.int_counter = 0
+        self.int_counter = self.agent.spawn_counter
         self.cross_reward=0
         self.counter = 0
         self.finished = False
@@ -245,6 +174,7 @@ class RLe2ePPOEvalAgent(Agent):
         for _ in range(4):
             self.bbox_step()
         self.finish_loop=False
+
 
     def run_step(self, vehicle: Vehicle, sensors_data = None, update_queue = True) -> VehicleControl:
         
@@ -287,27 +217,7 @@ class RLe2ePPOEvalAgent(Agent):
 
 
     def bbox_step(self, update_queue = True):
-        """
-        This is the function that the line detection agent used
-        Main function to use for detecting whether the vehicle reached a new strip in
-        the current step. The old strip (represented as a bbox) will be gone forever
-        return:
-        crossed: a boolean value indicating whether a new strip is reached
-        dist (optional): distance to the strip, value no specific meaning
-        self.counter += 1
-        if not self.finished:
-            while(True):
-                crossed, dist = self.bbox.has_crossed(self.vehicle.transform)
-                if crossed:
-                    self.int_counter += 1
-                    self.cross_reward+=crossed
-                    self._get_next_bbox()
-                else:
-                    break
-
-            return dist
-        return False, 0.0
-        """
+        
         if self.int_counter >= len(self.bbox_list):
             self.finish_loop=True
         currentframe_crossed = []
@@ -320,6 +230,7 @@ class RLe2ePPOEvalAgent(Agent):
                 self.int_counter += 1
             else:
                 break
+
         if self.vehicle.transform.location != Location(x=0.0, y=0.0, z=0.0):
             if update_queue:
                 if len(self.frame_queue) < 4 and len(currentframe_crossed):
@@ -343,7 +254,7 @@ class RLe2ePPOEvalAgent(Agent):
                     self.frame_queue[-1].extend(currentframe_crossed)
 
     def _get_all_bbox(self):
-        local_int_counter = 0
+        local_int_counter = 0 # count number of constructed bbox 
         curr_lb = self.look_back
         curr_idx = local_int_counter * self.interval
         while curr_idx + curr_lb < len(self.plan_lst):
@@ -395,47 +306,28 @@ class RLe2ePPOEvalAgent(Agent):
         self.finished = True
 
     def _get_obs(self) -> np.ndarray:
-        if mode=='baseline':
-            index_from=(self.int_counter%len(self.bbox_list))
-            if index_from+10<=len(self.bbox_list):
-                # print(index_from,len(self.agent.bbox_list),index_from+10-len(self.agent.bbox_list))
-                next_bbox_list=self.bbox_list[index_from:index_from+10]
-            else:
-                # print(index_from,len(self.agent.bbox_list),index_from+10-len(self.agent.bbox_list))
-                next_bbox_list=self.bbox_list[index_from:]+self.bbox_list[:index_from+10-len(self.bbox_list)]
-            assert(len(next_bbox_list)==10)
-            #import pdb
-            #pdb.set_trace()
-            map_list,overlap = self.occupancy_map.get_map_baseline(transform_list=self.vt_queue,
-                                                    view_size=(CONFIG["x_res"], CONFIG["y_res"]),
-                                                    bbox_list=self.frame_queue,
-                                                                 next_bbox_list=next_bbox_list
-                                                    )
-            self.overlap=overlap
-            cv2.imshow("data", np.hstack(np.hstack(map_list))) # uncomment to show occu map
-            cv2.waitKey(1)
-
-            return map_list[:,:-1]
+        index_from= (self.int_counter % len(self.bbox_list))
+        if index_from + 10 <= len(self.bbox_list):
+            # print(index_from,len(self.agent.bbox_list),index_from+10-len(self.agent.bbox_list))
+            next_bbox_list = self.bbox_list[index_from:index_from+10]
         else:
-            data = self.occupancy_map.get_map(transform=self.vehicle.transform,
-                                                    view_size=(CONFIG["x_res"], CONFIG["y_res"]),
-                                                    arbitrary_locations=self.bbox.get_visualize_locs(),
-                                                    arbitrary_point_value=self.bbox.get_value(),
-                                                    vehicle_velocity=self.vehicle.velocity,
-                                                    # rotate=self.agent.bbox.get_yaw()
-                                                    )
-            # data = cv2.resize(occu_map, (CONFIG["x_res"], CONFIG["y_res"]), interpolation=cv2.INTER_AREA)
-            #cv2.imshow("Occupancy Grid Map", cv2.resize(np.float32(data), dsize=(500, 500)))
+            # print(index_from,len(self.agent.bbox_list),index_from+10-len(self.agent.bbox_list))
+            next_bbox_list = self.bbox_list[index_from:] + self.bbox_list[:index_from+10-len(self.bbox_list)]
+        assert(len(next_bbox_list) == 10)
+        #import pdb
+        #pdb.set_trace()
+        map_list, overlap = self.occupancy_map.get_map_baseline(transform_list=self.vt_queue,
+                                                view_size=(CONFIG["x_res"], CONFIG["y_res"]),
+                                                bbox_list=self.frame_queue,
+                                                next_bbox_list=next_bbox_list
+                                                )
+        self.overlap=overlap
+        self.logger.info(f"{self.vehicle.transform.location}   {self.overlap}")
+        cv2.imshow("data", np.hstack(np.hstack(map_list))) # uncomment to show occu map
+        cv2.waitKey(1)
 
-            # data_view=np.sum(data,axis=2)
-            cv2.imshow("data", data) # uncomment to show occu map
-            cv2.waitKey(1)
-            # yaw_angle=self.agent.vehicle.transform.rotation.yaw
-            # velocity=self.agent.vehicle.get_speed(self.agent.vehicle)
-            # data[0,0,2]=velocity
-            data_input=data.copy()
-            data_input[data_input==1]=-10
-            return data_input  # height x width x 3 array
+        return map_list[:,:-1]
+        
 
 
 class LineBBox(object):
@@ -513,7 +405,7 @@ class LineBBox(object):
     def has_crossed(self, transform: Transform):
         x, z = transform.location.x, transform.location.z
         dist = self.eq(x, z)
-        crossed=dist > 0 if self.pos_true else dist < 0
+        crossed= dist > 0 if self.pos_true else dist < 0
         if self.flatten:
             return (crossed,dist)
         else:

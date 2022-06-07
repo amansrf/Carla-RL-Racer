@@ -229,6 +229,7 @@ def main(pass_num):
         )
 
         # Load the model
+        print(latest_model_path)
         model = PPO.load(
             latest_model_path,
             env=env,
