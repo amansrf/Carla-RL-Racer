@@ -29,9 +29,27 @@ CONFIG = {
     "y_res": 84
 }
 
+model2_range = {
+    "upper_x": 2.6e3, 
+    "lower_x": 2.58e3, 
+    "upper_z": 4.4e3, 
+    "lower_z": 4.3e3
+}
+
+def in_model2_range(location):
+    if location.x >= model2_range["lower_x"] and \
+        location.x <= model2_range["upper_x"] and \
+        location.z >= model2_range["lower_z"] and \
+        location.z <= model2_range["upper_z"]:
+        
+        return True
+    return False
+
+
 class RLe2ePPOEvalAgent(Agent):
     def __init__(self, vehicle: Vehicle, agent_settings: AgentConfig, **kwargs):
         super().__init__(vehicle, agent_settings, **kwargs)
+
 
         self.i = 0
         self.agent_config = agent_settings
@@ -74,7 +92,7 @@ class RLe2ePPOEvalAgent(Agent):
         }
         PPO_params = dict(
             learning_rate=0.00001,  # be smaller 2.5e-4
-            n_steps=1024 * misc_params["run_fps"],
+            n_steps = 1024 * misc_params["run_fps"],
             batch_size=64,  # mini_batch_size = 256?
             gamma=0.99,  # rec range .9 - .99
             ent_coef=.00,  # rec range .0 - .01
@@ -90,14 +108,19 @@ class RLe2ePPOEvalAgent(Agent):
         self.model_path = None
         if self.model_path == None:
             self.model_path = Path(find_latest_model(MODEL_DIR))
+
         print(self.model_path)
         self.model = PPO.load(Path(self.model_path), **training_kwargs)
+
+        self.model2_path = Path("./output/sample_output/rl_model_14816296_steps.zip")
+        self.model2 = PPO.load(Path(self.model2_path), **training_kwargs)
+        self.switch = False
 
         ######## initilization from agent ##################
         self.mission_planner = WaypointFollowingMissionPlanner(agent = self)
         self.flatten = True
         self.occupancy_map = OccupancyGridMap(agent = self, threaded=True)
-        occ_file_path = Path("C:/Users/roar/Documents/ROAR_RL_MENG_team/ROAR/ROAR_Sim/data/final3.npy")
+        occ_file_path = Path("../ROAR_Sim/data/final3.npy")
         self.occupancy_map.load_from_file(occ_file_path)
         self.plan_lst = list(self.mission_planner.produce_single_lap_mission_plan())
         self.kwargs = kwargs
@@ -120,6 +143,7 @@ class RLe2ePPOEvalAgent(Agent):
         # self.curr_dist_to_strip = 0
         self.bbox: Optional[LineBBox] = None
         self.bbox_list = []# list of bbox
+        self.wps_list = []
         self.frame_queue = deque([None, None, None], maxlen=4)
         self.vt_queue = deque([None, None, None], maxlen=4)
         #self._get_next_bbox()
@@ -162,6 +186,20 @@ class RLe2ePPOEvalAgent(Agent):
         self.deadzone_trigger = True
         self.deadzone_level = 0.001
 
+
+
+
+        index_from= (self.int_counter % len(self.bbox_list))
+        if index_from + 10 <= len(self.bbox_list):
+            # print(index_from,len(self.agent.bbox_list),index_from+10-len(self.agent.bbox_list))
+            next_bbox_list = self.bbox_list[index_from:index_from+10]
+        else:
+            # print(index_from,len(self.agent.bbox_list),index_from+10-len(self.agent.bbox_list))
+            next_bbox_list = self.bbox_list[index_from:] + self.bbox_list[:index_from+10-len(self.bbox_list)]
+        assert(len(next_bbox_list) == 10)
+
+        
+
     def reset(self,vehicle: Vehicle):
         self.vehicle=vehicle
         self.int_counter = self.agent.spawn_counter
@@ -175,7 +213,6 @@ class RLe2ePPOEvalAgent(Agent):
             self.bbox_step()
         self.finish_loop=False
 
-
     def run_step(self, vehicle: Vehicle, sensors_data = None, update_queue = True) -> VehicleControl:
         
         # agent steps
@@ -187,6 +224,14 @@ class RLe2ePPOEvalAgent(Agent):
 
         #print("##############################")
         #print(obs)
+        if in_model2_range(self.vehicle.transform.location) and self.switch == False:
+            self.logger.info("switched to model 2")
+            self.model2, self.model = self.model, self.model2
+            self.switch = True
+        #     self.logger.info("using model2")
+        #     action, next_obs = self.model2.predict(obs,deterministic=False)
+        # else:
+        #     action, next_obs = self.model.predict(obs,deterministic=False)
         action, next_obs = self.model.predict(obs,deterministic=False)
         #print(self.i, action)
         self.i += 1
@@ -214,7 +259,6 @@ class RLe2ePPOEvalAgent(Agent):
             self.current_hs = self.speed
 
         return VehicleControl(throttle=throttle, steering=steering, braking=braking)
-
 
     def bbox_step(self, update_queue = True):
         
@@ -272,6 +316,7 @@ class RLe2ePPOEvalAgent(Agent):
             if abs(dx) < self.thres and abs(dz) < self.thres:
                 curr_lb += 1
             else:
+                self.wps_list.append(t2)
                 self.bbox_list.append(LineBBox(t1, t2, self.bbox_reward_list,self.flatten))
                 local_int_counter += 1
                 curr_lb = self.look_back
@@ -313,18 +358,20 @@ class RLe2ePPOEvalAgent(Agent):
         else:
             # print(index_from,len(self.agent.bbox_list),index_from+10-len(self.agent.bbox_list))
             next_bbox_list = self.bbox_list[index_from:] + self.bbox_list[:index_from+10-len(self.bbox_list)]
+            next_wps_list = self.wps_list[index_from:] + self.bbox_list[:index_from+10-len(self.bbox_list)]
         assert(len(next_bbox_list) == 10)
         #import pdb
         #pdb.set_trace()
         map_list, overlap = self.occupancy_map.get_map_baseline(transform_list=self.vt_queue,
                                                 view_size=(CONFIG["x_res"], CONFIG["y_res"]),
                                                 bbox_list=self.frame_queue,
-                                                next_bbox_list=next_bbox_list
+                                                next_bbox_list=next_bbox_list, 
+                                                next_wps_list = next_wps_list
                                                 )
         self.overlap=overlap
         self.logger.info(f"{self.vehicle.transform.location}   {self.overlap}")
-        cv2.imshow("data", np.hstack(np.hstack(map_list))) # uncomment to show occu map
-        cv2.waitKey(1)
+        # cv2.imshow("data", np.hstack(np.hstack(map_list))) # uncomment to show occu map
+        # cv2.waitKey(1)
 
         return map_list[:,:-1]
         

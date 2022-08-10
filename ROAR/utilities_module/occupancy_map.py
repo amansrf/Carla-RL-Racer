@@ -40,6 +40,9 @@ class OccupancyGridMap(Module):
          it will not error out
         """
         super().__init__(name="occupancy_map", **kwargs)
+
+        self.debug_counter = 0
+
         self.logger = logging.getLogger(__name__)
         self._agent = agent
         config = OccupancyGridMapConfig.parse_file(self._agent.agent_settings.occu_map_config_path)
@@ -313,13 +316,15 @@ class OccupancyGridMap(Module):
         coord[[0,1]]=coord[[1,0]]
         self._map[tuple(coord)] -= bbox.get_value()
 
+
+
     # @profile
     def get_map_baseline(self,
                 transform_list,
                 view_size = (100, 100),
                 boundary_size = (100, 100),
                          bbox_list=None,
-                         next_bbox_list=None) -> np.ndarray:
+                         next_bbox_list=None, next_wps_list = None) -> np.ndarray:
         """
         Return global occu map if transform is None
         Otherwise, return ego centric map
@@ -337,12 +342,16 @@ class OccupancyGridMap(Module):
         """
         num_frames=len(transform_list)
         map_to_view = self._map
-        yaw=-transform_list[-1].rotation.yaw
+        yaw = -transform_list[-1].rotation.yaw
         occu_cord = self.location_to_occu_cord(location=transform_list[-1].location)
         x, y = occu_cord[0]
         first_cut_size = (view_size[0] + boundary_size[0], view_size[1] + boundary_size[1])
         map_to_view = map_to_view[y - first_cut_size[1] // 2: y + first_cut_size[1] // 2,
                   x - first_cut_size[0] // 2: x + first_cut_size[0] // 2].copy()
+
+        # cv2.imshow("data", map_to_view) # uncomment to show occu map
+        # if cv2.waitKey(0) == ord("q") & 0xFF:
+        #     exit()
 
         for bbox in next_bbox_list:
             coord = [self.location_to_occu_cord(location=location)[0] for location in bbox.get_visualize_locs()]
@@ -354,22 +363,27 @@ class OccupancyGridMap(Module):
                 map_to_view[tuple(coord)] += bbox.get_value()
             except:
                 pass
+        
+        # cv2.imshow("data", np.hstack(np.hstack(map_to_view))) # uncomment to show occu map
+        # if cv2.waitKey(0) == ord("q") & 0xFF:
+        #     exit()
 
 
         overlap=False
         ret=[]
         for i in range(num_frames):
-            v_map=np.zeros_like(map_to_view)
+            v_map = np.zeros_like(map_to_view)
             vehicle_x,vehicle_y=self.location_to_occu_cord(location=transform_list[i].location)[0]
-            vehicle_x+=(first_cut_size[0] // 2)-x
-            vehicle_y+=(first_cut_size[1] // 2)-y
+            vehicle_x += (first_cut_size[0] // 2)-x
+            vehicle_y += (first_cut_size[1] // 2)-y
             # v_map[vehicle_y-3:vehicle_y+4, vehicle_x-3:vehicle_x+4] = 0.8
-            if map_to_view[vehicle_y, vehicle_x]==1:
+            vehicle_locations = map_to_view[vehicle_y - 3 : vehicle_y + 3, vehicle_x - 3: vehicle_x + 3]
+            if np.any(vehicle_locations == 1):
                 overlap = True
             v_map[vehicle_y, vehicle_x] = 0.8
 
             w_map=map_to_view.copy()
-            w_map[w_map>=1]-=1
+            w_map[ w_map >= 1] -= 1
             for j in range(i+1,num_frames):
                 if bbox_list[j] is not None:
                     for bbox in bbox_list[j]:
@@ -396,9 +410,16 @@ class OccupancyGridMap(Module):
                               x_extra: tmp[i].shape[0] - x_extra]
             tmp.append(sum(tmp))
             ret.append(tmp)
+        
+        k = np.array(ret)
+        cv2.imshow("data", np.hstack(np.hstack(k))) # uncomment to show occu map
+        self.debug_counter += 1
+        if self.debug_counter % 200 == 0:
+            if cv2.waitKey(0) == ord("q") & 0xFF:
+                  exit()
+         
 
-        return np.array(ret),overlap
-
+        return np.array(ret), overlap
 
     def cropped_occu_to_world(self,
                               cropped_occu_coord: np.ndarray,

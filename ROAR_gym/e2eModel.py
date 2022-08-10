@@ -48,6 +48,7 @@ from wandb.integration.sb3 import WandbCallback
 import os
 import sys
 from pathlib import Path
+sys.path.append(Path(os.getcwd()).parent.as_posix())
 
 # imports for reading and writing to json files
 from utility import json_read_write

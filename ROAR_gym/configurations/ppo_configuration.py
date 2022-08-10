@@ -10,8 +10,8 @@ sys.path.append(Path(os.getcwd()).parent.as_posix())
 misc_params = {
   "env_name": 'roar-e2e-ppo-v0',
   "run_fps": 8,  # TODO Link to the environment RUN_FPS
-  "model_directory": Path("./output/PPOe2e_Major_FC_Run_1"),
-  "run_name": "Major FC Run 1",
+  "model_directory": Path("./output/PPOe2e_Major_FC_Run_4"),
+  "run_name": "Major FC Run 4",
   "total_timesteps": int(1e6),
 }
 
@@ -39,13 +39,32 @@ spawn_params = {
 }
 
 wandb_saves = {
-  "gradient_save_freq": 512 * misc_params["run_fps"]*10,
-  "model_save_freq": 50 * misc_params["run_fps"]*10,
+  "gradient_save_freq": 512 * misc_params["run_fps"] * 10,
+  "model_save_freq": 50 * misc_params["run_fps"] * 10,
 }
 
+def lr_scheduler(init_lr : float):
+  counter = 1
+  decaying_rate = 0.85
+  update_step = 20
+  current_lr = init_lr
+  def update_lr(uesless_arg):
+    # global counter
+    # global decaying_rate
+    # global update_step
+    # global current_lr
+    if counter % update_step == 0:
+       current_lr *= decaying_rate
+    return current_lr
+  return update_lr    
+
+
 PPO_params = dict(
-  learning_rate=0.0001,  # be smaller 2.5e-4
-  n_steps=1024 * misc_params["run_fps"],
+  learning_rate = 0.00001,  # be smaller 2.5e-4
+  # lr_deacying_rate = 0.85, 
+  # lr_decaying_step = 1000000, 
+  # learning_rate = lr_scheduler(0.00001), 
+  n_steps = 1024 * misc_params["run_fps"],
   batch_size=64,  # mini_batch_size = 256?
   # n_epochs=10,
   gamma=0.99,  # rec range .9 - .99
