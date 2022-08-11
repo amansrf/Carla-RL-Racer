@@ -377,7 +377,7 @@ class OccupancyGridMap(Module):
             vehicle_x += (first_cut_size[0] // 2)-x
             vehicle_y += (first_cut_size[1] // 2)-y
             # v_map[vehicle_y-3:vehicle_y+4, vehicle_x-3:vehicle_x+4] = 0.8
-            vehicle_locations = map_to_view[vehicle_y - 3 : vehicle_y + 3, vehicle_x - 3: vehicle_x + 3]
+            vehicle_locations = map_to_view[vehicle_y - 1 : vehicle_y + 2, vehicle_x - 1: vehicle_x + 2]
             if np.any(vehicle_locations == 1):
                 overlap = True
             v_map[vehicle_y, vehicle_x] = 0.8
@@ -389,7 +389,7 @@ class OccupancyGridMap(Module):
                     for bbox in bbox_list[j]:
                         coord=[self.location_to_occu_cord(location=location)[0] for location in bbox.get_visualize_locs()]
                         coord=np.array(coord)
-                        coord+=[(first_cut_size[0] // 2)-x,(first_cut_size[1] // 2)-y]
+                        coord+=[(first_cut_size[0] // 2)-x,(first_cut_size[1] // 2) - y]
                         coord=coord.swapaxes(0,1)
                         coord[[0,1]]=coord[[1,0]]
                         try:
@@ -398,25 +398,25 @@ class OccupancyGridMap(Module):
                             pass
 
             m_map=map_to_view.copy()
-            m_map[m_map>=1]=1
-            m_map[m_map<1]=0
-            tmp=[m_map,w_map,v_map]
+            m_map[m_map >= 1] = 1
+            m_map[m_map < 1] = 0
+            tmp=[m_map, w_map, v_map]
             for i in range(len(tmp)):
                 image = Image.fromarray(tmp[i])
                 image = image.rotate(yaw)
                 tmp[i] = np.asarray(image)
                 x_extra, y_extra = boundary_size[0] // 2, boundary_size[1] // 2
-                tmp[i] = tmp[i][y_extra-view_size[1]//4: tmp[i].shape[1] - y_extra-view_size[1]//4,
+                tmp[i] = tmp[i][y_extra-view_size[1] // 4 : tmp[i].shape[1] - y_extra-view_size[1] // 4,
                               x_extra: tmp[i].shape[0] - x_extra]
             tmp.append(sum(tmp))
             ret.append(tmp)
         
-        k = np.array(ret)
-        cv2.imshow("data", np.hstack(np.hstack(k))) # uncomment to show occu map
-        self.debug_counter += 1
-        if self.debug_counter % 200 == 0:
-            if cv2.waitKey(0) == ord("q") & 0xFF:
-                  exit()
+        # k = np.array(ret)
+        # cv2.imshow("data", np.hstack(np.hstack(k))) # uncomment to show occu map
+        # self.debug_counter += 1
+        # if self.debug_counter % 200 == 0:
+        #     if cv2.waitKey(0) == ord("q") & 0xFF:
+        #           exit()
          
 
         return np.array(ret), overlap

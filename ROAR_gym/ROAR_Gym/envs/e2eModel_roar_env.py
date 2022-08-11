@@ -81,11 +81,11 @@ class ROARppoEnvE2E(ROAREnv):
         self.complete_loop=False
         self.his_checkpoint=[]
         self.his_score=[]
-        self.time_to_waypoint_ratio = 0.25
+        self.time_to_waypoint_ratio = 0.8
         # self.crash_step=0
         # self.reward_step=0
         # self.reset_by_crash=True
-        self.fps = 8
+        self.fps = 32
         # self.crash_tol=5
         # self.reward_tol=5
         # self.end_check=False
@@ -129,18 +129,18 @@ class ROARppoEnvE2E(ROAREnv):
         for i in range(1):
             # throttle=(action[i*3]+0.5)/2+1
             action = action.reshape((-1))
-            check = (action[i*3+0]+0.5)/2+1
+            check = (action[ i * 3 + 0] + 0.5) / 2 + 1
             if check > 0.5:
-                throttle = 0.7
+                throttle = 1.0
                 braking = 0
             else:
                 throttle = 0
-                braking = .8
+                braking = ( 0.5 - check ) / 0.5 * 1.0
             # throttle = .6
             # braking = 0
 
 
-            steering = action[i*3+1]/5
+            steering = action [i * 3 + 1] / 5
 
             if self.deadzone_trigger and abs(steering) < self.deadzone_level:
                 steering = 0.0
@@ -158,6 +158,7 @@ class ROARppoEnvE2E(ROAREnv):
             rewards.append(reward)
             if is_done:
                 break
+
         self.render()
         self.frame_reward = sum(rewards)
         self.ep_rewards += sum(rewards)
