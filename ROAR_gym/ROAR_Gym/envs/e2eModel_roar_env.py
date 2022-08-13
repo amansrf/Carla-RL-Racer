@@ -81,7 +81,7 @@ class ROARppoEnvE2E(ROAREnv):
         self.complete_loop=False
         self.his_checkpoint=[]
         self.his_score=[]
-        self.time_to_waypoint_ratio = 0.8
+        self.time_to_waypoint_ratio = 0.75
         # self.crash_step=0
         # self.reward_step=0
         # self.reset_by_crash=True
@@ -103,7 +103,7 @@ class ROARppoEnvE2E(ROAREnv):
             self.last_sim_time = 0
         self.sim_lap_time = 0
 
-        self.deadzone_trigger = False
+        self.deadzone_trigger = True
         self.deadzone_level = 0.001
         self.overlap = False
 
@@ -135,7 +135,8 @@ class ROARppoEnvE2E(ROAREnv):
                 braking = 0
             else:
                 throttle = 0
-                braking = ( 0.5 - check ) / 0.5 * 1.0
+                # braking = ( 0.5 - check ) / 0.5 * 1.0
+                braking = 1.0
             # throttle = .6
             # braking = 0
 
@@ -150,9 +151,8 @@ class ROARppoEnvE2E(ROAREnv):
                                                           steering=steering,
                                                           braking=braking)
 
-            # a, b = super(ROARppoEnvE2E, self).step(action)
             ob, reward, is_done, info = super(ROARppoEnvE2E, self).step(action)
-            # print(a, b)
+
 
             obs.append(ob)
             rewards.append(reward)

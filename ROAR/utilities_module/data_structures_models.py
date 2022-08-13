@@ -118,8 +118,17 @@ class Transform(BaseModel):
                          self.rotation.yaw])
 
     @staticmethod
-    def from_array(array):
-        return Transform(location=Location.from_array(array[:3]), rotation=Rotation.from_array(array[3:]))
+    def from_array(array, is_gps = False):
+        if len(array) == 3:
+            return Transform(location=Location.from_array(array[:3]))
+        elif len(array) == 6:
+            if not is_gps:
+                return Transform(location=Location.from_array(array[:3]), rotation=Rotation.from_array(array[3:]))
+            else:
+                return Transform(location=Location.from_array(array[:3]))
+        else:
+            return None
+
 
     def __add__(self, other):
         return Transform.from_array(self.to_array() + other.to_array())

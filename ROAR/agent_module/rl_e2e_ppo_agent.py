@@ -312,7 +312,6 @@ class LineBBox(object):
     def get_visualize_locs(self):
         return self.strip_list
 
-
     def get_value(self):
         return self.bbox_reward_list
 

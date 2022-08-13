@@ -242,7 +242,7 @@ class OccupancyGridMap(Module):
 
             # waypoint_view=np.zeros_like(map_to_view)
             # vehicle_view=np.zeros_like(map_to_view)
-            map_to_view[y-3:y+3, x-3:x+3] += 0.8
+            map_to_view[y-1:y+1, x-1:x+1] += 0.8
             # if vehicle_velocity:
             #     y_shadow=y+int(vehicle_velocity.y/2)
             #     x_shadow=x+int(vehicle_velocity.x/2)
@@ -359,6 +359,8 @@ class OccupancyGridMap(Module):
             coord += [(first_cut_size[0] // 2) - x, (first_cut_size[1] // 2) - y]
             coord = coord.swapaxes(0, 1)
             coord[[0, 1]] = coord[[1, 0]]
+            if any(coord[0] <= 0) or any(coord[1]<=0):
+                continue
             try:
                 map_to_view[tuple(coord)] += bbox.get_value()
             except:
