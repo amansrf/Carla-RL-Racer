@@ -131,12 +131,12 @@ class ROARppoEnvE2E(ROAREnv):
             action = action.reshape((-1))
             check = (action[ i * 3 + 0] + 0.5) / 2 + 1
             if check > 0.5:
-                throttle = 1.0
+                throttle = 0.7
                 braking = 0
             else:
                 throttle = 0
                 # braking = ( 0.5 - check ) / 0.5 * 1.0
-                braking = 1.0
+                braking = 0.8
             # throttle = .6
             # braking = 0
 
@@ -202,7 +202,7 @@ class ROARppoEnvE2E(ROAREnv):
 
         if self.carla_runner.world is not None:
             current_time = self.carla_runner.world.hud.simulation_time
-            if self.agent.int_counter * self.agent.interval < 5175:
+            if self.agent.int_counter * self.agent.interval < 27180:
                 self.sim_lap_time = 400
             else:
                 self.sim_lap_time = current_time - self.last_sim_time
@@ -235,8 +235,10 @@ class ROARppoEnvE2E(ROAREnv):
     def get_reward(self) -> float:
         # prep for reward computation
         # reward = -0.1*(1-self.agent.vehicle.control.throttle+10*self.agent.vehicle.control.braking+abs(self.agent.vehicle.control.steering))*400/8
+        
         reward = -1
-        if self.agent.vehicle.control.steering == 0.0:
+        
+        if abs(self.agent.vehicle.control.steering) <= 0.1:
             reward += 0.1
 
         if self.crash_check:
@@ -247,9 +249,9 @@ class ROARppoEnvE2E(ROAREnv):
         if self.agent.cross_reward > self.prev_cross_reward:
             reward += (self.agent.cross_reward - self.prev_cross_reward)*self.agent.interval*self.time_to_waypoint_ratio
 
-        # if not (self.agent.bbox_list[(self.agent.int_counter - self.death_line_dis) % len(self.agent.bbox_list)].has_crossed(self.agent.vehicle.transform))[0]:
-        #     reward -= 200
-        #     self.crash_check = True
+        if not (self.agent.bbox_list[(self.agent.int_counter - self.death_line_dis) % len(self.agent.bbox_list)].has_crossed(self.agent.vehicle.transform))[0]:
+            reward -= 200
+            self.crash_check = True
 
         if self.agent.int_counter > 1 and self.agent.vehicle.get_speed(self.agent.vehicle) < 1:
             self.stopped_counter += 1

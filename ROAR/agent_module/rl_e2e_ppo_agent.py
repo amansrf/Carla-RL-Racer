@@ -215,7 +215,7 @@ class LineBBox(object):
         self.eq = self._construct_eq()
         self.dis = self._construct_dis()
         self.strip_list = None
-        self.size=20
+        self.size = 20
         self.bbox_reward_list=bbox_reward_list
         self.strip_list = None
         self.generate_visualize_locs(20)
@@ -311,6 +311,7 @@ class LineBBox(object):
 
     def get_visualize_locs(self):
         return self.strip_list
+
 
     def get_value(self):
         return self.bbox_reward_list
