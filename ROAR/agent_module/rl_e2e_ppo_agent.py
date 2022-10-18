@@ -20,24 +20,13 @@ from collections import deque
 class RLe2ePPOAgent(Agent):
     def __init__(self, vehicle: Vehicle, agent_settings: AgentConfig, **kwargs):
         super().__init__(vehicle, agent_settings, **kwargs)
-        # self.route_file_path = Path(self.agent_settings.waypoint_file_path)#TO REMOVE
-        # self.pid_controller = PIDController(agent=self, steering_boundary=(-1, 1), throttle_boundary=(0, 1))#TO REMOVE
         self.mission_planner = WaypointFollowingMissionPlanner(agent=self)
-        # # initiated right after mission plan#TO REMOVE
-        # self.behavior_planner = BehaviorPlanner(agent=self)#TO REMOVE
-        # self.local_planner = LoopSimpleWaypointFollowingLocalPlanner(#TO REMOVE
-        #     agent=self,
-        #     controller=self.pid_controller,
-        #     mission_planner=self.mission_planner,
-        #     behavior_planner=self.behavior_planner,
-        #     closeness_threshold=1.5
-        # )#TO REMOVE
 
         # the part about visualization
         self.flatten=True
         self.occupancy_map = OccupancyGridMap(agent=self, threaded=True)
 
-        occ_file_path = Path("../ROAR_Sim/data/final3.npy")
+        occ_file_path = Path(agent_settings.occu_map_path)
         self.occupancy_map.load_from_file(occ_file_path)
 
         self.plan_lst = list(self.mission_planner.produce_single_lap_mission_plan())
@@ -63,9 +52,7 @@ class RLe2ePPOAgent(Agent):
         self.bbox_list = []# list of bbox
         self.frame_queue = deque([None, None, None], maxlen=4)
         self.vt_queue = deque([None, None, None], maxlen=4)
-        #self._get_next_bbox()
         self._get_all_bbox()
-        # self.occupancy_map.draw_bbox_list(self.bbox_list)
         for _ in range(4):
             self.bbox_step()
         self.finish_loop=False
@@ -78,20 +65,13 @@ class RLe2ePPOAgent(Agent):
         self.finished = False
         # self.curr_dist_to_strip = 0
         self.bbox: Optional[LineBBox] = None
-        # self.bbox_list = []# list of bbox
-        #self.bbox_list = []# list of bbox
         self.frame_queue = deque([None, None, None], maxlen=4)
         self.vt_queue = deque([None, None, None], maxlen=4)
         for _ in range(4):
             self.bbox_step()
-        #self._get_next_bbox()
         self.finish_loop=False
 
     def run_step(self,vehicle: Vehicle,update_queue=True):
-        # super(RLe2ePPOAgent, self).run_step(sensors_data, vehicle)
-        #print(self.vehicle.transform)
-        #self.local_planner.run_in_series()#TO REMOVE
-
         self.vehicle = vehicle
         self.bbox_step(update_queue)
 
@@ -117,7 +97,6 @@ class RLe2ePPOAgent(Agent):
             return dist
         return False, 0.0
         """
-        #import pdb; pdb.set_trace()
         if self.int_counter >= len(self.bbox_list):
             self.finish_loop=True
         currentframe_crossed = []
@@ -126,7 +105,6 @@ class RLe2ePPOAgent(Agent):
             crossed, dist = self.bbox_list[self.int_counter%len(self.bbox_list)].has_crossed(self.vehicle.transform)
             if crossed:
                 self.cross_reward+=crossed
-                # self.occupancy_map.del_bbox(self.bbox_list[self.int_counter])
                 currentframe_crossed.append(self.bbox_list[self.int_counter%len(self.bbox_list)])
                 self.int_counter += 1
             else:
@@ -264,7 +242,6 @@ class LineBBox(object):
 
         slope_ = dz / dx
         self.slope = -1 / slope_
-        # print("tilted strip with slope {}".format(self.slope))
         self.intercept = -(self.slope * self.x2) + self.z2
 
         def linear_dis(x, z):
@@ -302,9 +279,6 @@ class LineBBox(object):
             range_ = size * np.cos(np.arctan(self.slope))
             xs = np.linspace(self.x2 - range_ / 2, self.x2 + range_ / 2, num=size)
             zs = self.slope * xs + self.intercept
-            # print(np.vstack((xs, zs)).T)
-
-        #         self.strip_list = np.vstack((xs, zs)).T
         self.strip_list = []
         for i in range(len(xs)):
             self.strip_list.append(Location(x=xs[i], y=0, z=zs[i]))

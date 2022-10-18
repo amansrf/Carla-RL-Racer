@@ -23,49 +23,23 @@ from ROAR_gym.utility import json_read_write, next_spawn_point
 from ROAR_gym.configurations.ppo_configuration import spawn_params
 
 mode='baseline'
-if mode=='no_map':
-    FRAME_STACK = 1
-else:
-    FRAME_STACK = 4
+FRAME_STACK = 4
+CONFIG = {
+    "x_res": 84,
+    "y_res": 84
+}
 
-if mode=='baseline':
-    CONFIG = {
-        "x_res": 84,
-        "y_res": 84
-    }
-else:
-    CONFIG = {
-        # max values are 280x280
-        # original values are 80x80
-        "x_res": 80,
-        "y_res": 80
-    }
-
-spawn_int_map = np.array([91, 0, 140, 224, 312, 442, 556, 730, 782, 898, 1142, 1283, 39])
-
+spawn_params["spawn_int_map"] = np.array([91, 0, 140, 224, 312, 442, 556, 730, 782, 898, 1142, 1283, 39])
 
 class ROARppoEnvE2E(ROAREnv):
     def __init__(self, params):
         super().__init__(params)
-        #self.action_space = Discrete(len(DISCRETE_ACTIONS))
         low=np.array([-2.5, -5.0, 1.0])
         high=np.array([-0.5, 5.0, 3.0])
-        # low=np.array([100, 0, -1])
-        # high=np.array([1, 0.12, 0.5])
         self.mode=mode
-        if self.mode=='baseline':
-            self.action_space = Box(low=low, high=high, dtype=np.float32)
-        else:
-            self.action_space = Box(low=np.tile(low,(FRAME_STACK)), high=np.tile(high,(FRAME_STACK)), dtype=np.float32)
+        self.action_space = Box(low=low, high=high, dtype=np.float32)
 
-        if self.mode=='no_map':
-            self.observation_space = Box(low=np.tile([-1],(13)), high=np.tile([1],(13)), dtype=np.float32)
-        elif self.mode=='combine':
-            self.observation_space = Box(-10, 1, shape=(FRAME_STACK,3, CONFIG["x_res"], CONFIG["y_res"]), dtype=np.float32)
-        elif self.mode=='baseline':
-            self.observation_space = Box(-10, 1, shape=(FRAME_STACK,3, CONFIG["x_res"], CONFIG["y_res"]), dtype=np.float32)
-        else:
-            self.observation_space = Box(-10, 1, shape=(FRAME_STACK, CONFIG["x_res"], CONFIG["y_res"]), dtype=np.float32)
+        self.observation_space = Box(-10, 1, shape=(FRAME_STACK,3, CONFIG["x_res"], CONFIG["y_res"]), dtype=np.float32)
         self.prev_speed = 0
         self.prev_cross_reward = 0
         self.crash_check = False
@@ -82,13 +56,7 @@ class ROARppoEnvE2E(ROAREnv):
         self.his_checkpoint=[]
         self.his_score=[]
         self.time_to_waypoint_ratio = 0.75
-        # self.crash_step=0
-        # self.reward_step=0
-        # self.reset_by_crash=True
         self.fps = 32
-        # self.crash_tol=5
-        # self.reward_tol=5
-        # self.end_check=False
         self.death_line_dis = 5
         ## used to check if stalled
         self.stopped_counter = 0
@@ -118,46 +86,39 @@ class ROARppoEnvE2E(ROAREnv):
         else:
             self.agent_config.spawn_point_id = spawn_params["init_spawn_pt"]
 
-        self.agent.spawn_counter = spawn_int_map[self.agent_config.spawn_point_id]
+        self.agent.spawn_counter = spawn_params["spawn_int_map"][self.agent_config.spawn_point_id]
         print("#########################\n",self.agent.spawn_counter)
 
 
     def step(self, action: Any) -> Tuple[Any, float, bool, dict]:
         obs = []
         rewards = []
-        self.steps+=1
-        for i in range(1):
-            # throttle=(action[i*3]+0.5)/2+1
-            action = action.reshape((-1))
-            check = (action[ i * 3 + 0] + 0.5) / 2 + 1
-            if check > 0.5:
-                throttle = 0.7
-                braking = 0
-            else:
-                throttle = 0
-                # braking = ( 0.5 - check ) / 0.5 * 1.0
-                braking = 0.8
-            # throttle = .6
-            # braking = 0
+        self.steps += 1
+
+        action = action.reshape((-1))
+        check = (action[0] + 0.5) / 2 + 1
+        if check > 0.5:
+            throttle = 0.7
+            braking = 0
+        else:
+            throttle = 0
+            braking = 0.8
+
+        steering = action[1] / 5
+
+        if self.deadzone_trigger and abs(steering) < self.deadzone_level:
+            steering = 0.0
 
 
-            steering = action [i * 3 + 1] / 5
+        self.agent.kwargs["control"] = VehicleControl(throttle=throttle,
+                                                        steering=steering,
+                                                        braking=braking)
 
-            if self.deadzone_trigger and abs(steering) < self.deadzone_level:
-                steering = 0.0
-
-
-            self.agent.kwargs["control"] = VehicleControl(throttle=throttle,
-                                                          steering=steering,
-                                                          braking=braking)
-
-            ob, reward, is_done, info = super(ROARppoEnvE2E, self).step(action)
+        ob, reward, is_done, info = super(ROARppoEnvE2E, self).step(action)
 
 
-            obs.append(ob)
-            rewards.append(reward)
-            if is_done:
-                break
+        obs.append(ob)
+        rewards.append(reward)
 
         self.render()
         self.frame_reward = sum(rewards)
@@ -216,9 +177,6 @@ class ROARppoEnvE2E(ROAREnv):
         if self.stopped_counter >= self.stopped_max_count:
             print("what")
             return True
-        # if not (self.agent.bbox_list[(self.agent.int_counter - self.death_line_dis) % len(self.agent.bbox_list)].has_crossed(self.agent.vehicle.transform))[0]:
-        #     print("gives")
-        #     return True
         if self.carla_runner.get_num_collision() > self.max_collision_allowed:
             print("man")
             return True
@@ -233,9 +191,6 @@ class ROARppoEnvE2E(ROAREnv):
             return False
 
     def get_reward(self) -> float:
-        # prep for reward computation
-        # reward = -0.1*(1-self.agent.vehicle.control.throttle+10*self.agent.vehicle.control.braking+abs(self.agent.vehicle.control.steering))*400/8
-        
         reward = -1
         
         if abs(self.agent.vehicle.control.steering) <= 0.1:
@@ -244,7 +199,6 @@ class ROARppoEnvE2E(ROAREnv):
         if self.crash_check:
             print("no reward")
             return 0
-
 
         if self.agent.cross_reward > self.prev_cross_reward:
             reward += (self.agent.cross_reward - self.prev_cross_reward)*self.agent.interval*self.time_to_waypoint_ratio
@@ -332,11 +286,11 @@ class ROARppoEnvE2E(ROAREnv):
         # Change Spawn Point before reset
         self.agent_config.spawn_point_id = next_spawn_point(self.agent_config.spawn_point_id)
         print("Spawn Pt ID", self.agent_config.spawn_point_id)
-        self.EgoAgentClass.spawn_counter = spawn_int_map[self.agent_config.spawn_point_id]
-        self.agent.spawn_counter = spawn_int_map[self.agent_config.spawn_point_id]
+        self.EgoAgentClass.spawn_counter = spawn_params["spawn_int_map"][self.agent_config.spawn_point_id]
+        self.agent.spawn_counter = spawn_params["spawn_int_map"][self.agent_config.spawn_point_id]
 
         super(ROARppoEnvE2E, self).reset()
-        self.agent.spawn_counter = spawn_int_map[self.agent_config.spawn_point_id]
+        self.agent.spawn_counter = spawn_params["spawn_int_map"][self.agent_config.spawn_point_id]
         print(self.agent.spawn_counter)
         self.steps=0
         # self.crash_step=0
