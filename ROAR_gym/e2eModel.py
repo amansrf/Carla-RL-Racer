@@ -177,19 +177,11 @@ def main(pass_num):
             "ego_agent_class": RLe2ePPOAgent,
         }
     )
-    #print(th.cuda.is_available())
 
     # Setting the feature extract or based on the environment mode
-    if env.mode == 'baseline':
-        policy_kwargs = dict(
-            features_extractor_class=Atari_PPO_Adapted_CNN,
-            features_extractor_kwargs=dict(features_dim=256)
-        )
-    else:
-        policy_kwargs = dict(
-            features_extractor_class=CustomMaxPoolCNN,
-            features_extractor_kwargs=dict(features_dim=256)
-        )
+    policy_kwargs = dict(
+        features_extractor_class=Atari_PPO_Adapted_CNN,
+        features_extractor_kwargs=dict(features_dim=256))
 
     # training kwargs for PPO init
     training_kwargs = PPO_params
@@ -246,8 +238,6 @@ def main(pass_num):
 
     logging_callback = LoggingCallback(model=model)
 
-    faster_Logging_Callback = Tensorboard_Faster_Logger(check_freq=wandb_saves["model_save_freq"])
-
     checkpoint_callback = CheckpointCallback(
         save_freq=wandb_saves["model_save_freq"],
         verbose=2,
@@ -262,7 +252,7 @@ def main(pass_num):
     wandb_callback = WandbCallback(
         verbose=2,
         model_save_path=f"models/{run.id}",
-        gradient_save_freq=PPO_params["n_steps"],
+        gradient_save_freq=training_kwargs["n_steps"],
         model_save_freq=wandb_saves["model_save_freq"],
     )
 
@@ -271,7 +261,6 @@ def main(pass_num):
         checkpoint_callback,
         event_callback,
         logging_callback
-        # faster_Logging_Callback
     ])
 
     # Begin learning
@@ -279,7 +268,6 @@ def main(pass_num):
         total_timesteps=misc_params["total_timesteps"],
         callback=callbacks,
         reset_num_timesteps=False,
-        # tb_log_name=wandb_config["run_id"],
     )
 
     # Save Model
