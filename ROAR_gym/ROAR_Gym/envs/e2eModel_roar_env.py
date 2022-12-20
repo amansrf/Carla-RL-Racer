@@ -96,13 +96,21 @@ class ROARppoEnvE2E(ROAREnv):
         self.steps += 1
 
         action = action.reshape((-1))
-        check = (action[0] + 0.5) / 2 + 1
-        if check > 0.5:
-            throttle = 0.7
-            braking = 0
-        else:
-            throttle = 0
-            braking = 0.8
+        throttle = (action[0] + 0.5) / 2 + 1
+        braking = (action[2] - 1.0) / 2
+
+        # full_throttle_thre = 0.6
+        # non_braking_thre = 0.4
+        # throttle = min(1, throttle_check / full_throttle_thre)
+        # braking = max(0, (braking_check - non_braking_thre) / (1 - non_braking_thre))
+
+        # check = (action[0] + 0.5) / 2 + 1
+        # if check > 0.5:
+        #     throttle = 0.7
+        #     braking = 0
+        # else:
+        #     throttle = 0
+        #     braking = 0.8
 
         steering = action[1] / 5
 
@@ -293,6 +301,13 @@ class ROARppoEnvE2E(ROAREnv):
         self.agent.spawn_counter = spawn_params["spawn_int_map"][self.agent_config.spawn_point_id]
         print(self.agent.spawn_counter)
         self.steps=0
+        for _ in range(100):
+            print('step '+str(self.steps))
+            self.agent.kwargs["control"] = VehicleControl(throttle=1.0,
+                                                            steering=0.0,
+                                                            braking=0.0)
+            super(ROARppoEnvE2E, self).step(None)
+            self.steps+=1
         # self.crash_step=0
         # self.reward_step=0
         return self._get_obs()
