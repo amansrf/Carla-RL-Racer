@@ -378,11 +378,12 @@ class OccupancyGridMap(Module):
             vehicle_x,vehicle_y=self.location_to_occu_cord(location=transform_list[i].location)[0]
             vehicle_x += (first_cut_size[0] // 2)-x
             vehicle_y += (first_cut_size[1] // 2)-y
-            # v_map[vehicle_y-3:vehicle_y+4, vehicle_x-3:vehicle_x+4] = 0.8
-            vehicle_locations = map_to_view[vehicle_y - 1 : vehicle_y + 2, vehicle_x - 1: vehicle_x + 2]
-            if np.any(vehicle_locations == 1):
-                overlap = True
-            v_map[vehicle_y, vehicle_x] = 0.8
+            size=2
+            v_map[vehicle_y-size:vehicle_y+1+size, vehicle_x-size:vehicle_x+1+size] = 0.8
+            vehicle_locations = map_to_view[vehicle_y - size : vehicle_y + 1+size, vehicle_x - size: vehicle_x + 1+size]
+            # if np.any(vehicle_locations == 1):
+            #     overlap = True
+            # v_map[vehicle_y, vehicle_x] = 0.8
 
             w_map=map_to_view.copy()
             w_map[ w_map >= 1] -= 1

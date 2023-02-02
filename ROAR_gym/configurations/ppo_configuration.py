@@ -10,15 +10,15 @@ sys.path.append(Path(os.getcwd()).parent.as_posix())
 misc_params = {
   "env_name": 'roar-e2e-ppo-v0',
   "run_fps": 32,  # TODO Link to the environment RUN_FPS
-  "model_directory": Path("./output/PPOe2e_Major_skipping_frames_at_beginning_1"),
-  "run_name": "Major FC Run 12",
+  "model_directory": Path("./output/PPOe2e_major_new_map_1_trial"),
+  "run_name": "major_new_map_1_trial",
   "total_timesteps": int(1e6),
 }
 
 spawn_params = {
   "num_spawn_pts": 13,  # Last one is 12s
   "init_spawn_pt": 0,
-  "dynamic_spawn": True,  # True if start at different spawn locations on reset
+  "dynamic_spawn": False,  # True if start at different spawn locations on reset
 
   # Spawn Guide:
   # 1 = Roundabout
@@ -31,9 +31,10 @@ spawn_params = {
   #   2. "linear forward" - After reset spawn point increments by one. Loops back to init after num_spawn_pts reached
   #   3. "linear backward" - After reset decrement spawn point by one. Loops back to num_spawn_pts after init reached
   #   4. "custom spawn pts" - Provide a custom list of spawn points.
-  "dynamic_type": "uniform random",
-  "custom_list": [4, 9, 0, 12, 7],  # List of custom spawn pts
+  "dynamic_type": "custom spawn pts",
+  "custom_list": [0, 1, 2, 3, 4, 6, 7, 8, 10],  # List of custom spawn pts
 
+                                                                                                                                                                                                                      
   "spawn_pt_iterator": 0,  # DO NOT TOUCH THIS! Used Internally!
   "spawn_int_map": [91, 0, 140, 224, 312, 442, 556, 730, 782, 898, 1142, 1283, 39],
 }

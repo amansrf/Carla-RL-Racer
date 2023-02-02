@@ -285,24 +285,3 @@ if __name__ == '__main__':
     while True:
         main(i)
         i += 1
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
