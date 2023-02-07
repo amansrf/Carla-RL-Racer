@@ -29,7 +29,7 @@ CONFIG = {
     "y_res": 84
 }
 
-spawn_params["spawn_int_map"] = np.array([91, 0, 140, 224, 312, 442, 556, 730, 782, 898, 1142, 1283, 39])
+spawn_params["spawn_int_map"] = np.array([39, 91, 140, 224, 312, 442, 556, 730, 782, 898, 1142, 1283, 0])
 
 class ROARppoEnvE2E(ROAREnv):
     def __init__(self, params):
@@ -55,7 +55,7 @@ class ROARppoEnvE2E(ROAREnv):
         self.complete_loop=False
         self.his_checkpoint=[]
         self.his_score=[]
-        self.time_to_waypoint_ratio = 0.75
+        self.time_to_waypoint_ratio = 5.0 #0.75
         self.fps = 32
         self.death_line_dis = 5
         ## used to check if stalled
@@ -188,7 +188,7 @@ class ROARppoEnvE2E(ROAREnv):
         if self.carla_runner.get_num_collision() > self.max_collision_allowed:
             print("man")
             return True
-        elif self.overlap:
+        elif self.crash_check: #elif self.overlap:
             print("pls")
             return True
         elif self.agent.finish_loop:
@@ -200,6 +200,7 @@ class ROARppoEnvE2E(ROAREnv):
 
     def get_reward(self) -> float:
         reward = -1
+
         
         if abs(self.agent.vehicle.control.steering) <= 0.1:
             reward += 0.1
@@ -214,16 +215,17 @@ class ROARppoEnvE2E(ROAREnv):
         if not (self.agent.bbox_list[(self.agent.int_counter - self.death_line_dis) % len(self.agent.bbox_list)].has_crossed(self.agent.vehicle.transform))[0]:
             reward -= 200
             self.crash_check = True
-
-        if self.agent.int_counter > 1 and self.agent.vehicle.get_speed(self.agent.vehicle) < 1:
-            self.stopped_counter += 1
-            if self.stopped_counter >= self.stopped_max_count:
-                reward -= 200
-                self.crash_check = True
-
-        if self.carla_runner.get_num_collision() > 0 or self.overlap:
+        elif self.carla_runner.get_num_collision() > 0 or self.overlap:
             reward -= 200
             self.crash_check = True
+
+        # if self.agent.int_counter > 1 and self.agent.vehicle.get_speed(self.agent.vehicle) < 1:
+        #     self.stopped_counter += 1
+        #     if self.stopped_counter >= self.stopped_max_count:
+        #         reward -= 200
+        #         self.crash_check = True
+
+        
 
 
         # log prev info for next reward computation
@@ -301,8 +303,8 @@ class ROARppoEnvE2E(ROAREnv):
         self.agent.spawn_counter = spawn_params["spawn_int_map"][self.agent_config.spawn_point_id]
         print(self.agent.spawn_counter)
         self.steps=0
-        for _ in range(100):
-            print('step '+str(self.steps))
+        for _ in range(10):
+            #print('step '+str(self.steps))
             self.agent.kwargs["control"] = VehicleControl(throttle=1.0,
                                                             steering=0.0,
                                                             braking=0.0)
