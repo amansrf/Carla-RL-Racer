@@ -15,6 +15,7 @@ from collections import OrderedDict
 from gym.spaces import Discrete, Box
 import cv2
 import wandb
+import skimage.measure
 
 # imports for reading and writing json config files
 from ROAR_gym.utility import json_read_write, next_spawn_point
@@ -39,7 +40,7 @@ class ROARppoEnvE2E(ROAREnv):
         self.mode=mode
         self.action_space = Box(low=low, high=high, dtype=np.float32)
 
-        self.observation_space = Box(-10, 1, shape=(FRAME_STACK,3, CONFIG["x_res"], CONFIG["y_res"]), dtype=np.float32)
+        self.observation_space = Box(-10, 1, shape=(FRAME_STACK*2,3, CONFIG["x_res"], CONFIG["y_res"]), dtype=np.float32)
         self.prev_speed = 0
         self.prev_cross_reward = 0
         self.crash_check = False
@@ -253,9 +254,26 @@ class ROARppoEnvE2E(ROAREnv):
             #cv2.imshow("Occupancy Grid Map", cv2.resize(np.float32(data), dsize=(500, 500)))
 
             # data_view=np.sum(data,axis=2)
-            cv2.imshow("data", np.hstack(np.hstack(map_list))) # uncomment to show occu map
+            
+
+            # map_list2,_ = self.agent.occupancy_map.get_map_baseline(transform_list=self.agent.vt_queue,
+            #                                         view_size=(CONFIG["x_res"]*2, CONFIG["y_res"]*2),
+            #                                         bbox_list=self.agent.frame_queue,
+            #                                                      next_bbox_list=next_bbox_list
+            #                                         )
+            # map_list2=skimage.measure.block_reduce(map_list2, (1,1,2,2), np.max)
+            map_list4,_ = self.agent.occupancy_map.get_map_baseline(transform_list=self.agent.vt_queue,
+                                                    view_size=(CONFIG["x_res"]*4, CONFIG["y_res"]*4),
+                                                    bbox_list=self.agent.frame_queue,
+                                                    next_bbox_list=next_bbox_list
+                                                    )
+            map_list4=skimage.measure.block_reduce(map_list4, (1,1,4,4), np.max)
+
+            cv2.imshow("data", np.hstack(np.hstack(map_list4))) # uncomment to show occu map
             cv2.waitKey(1)
-            return map_list[:,:-1]
+            mapList=np.vstack((map_list[:,:-1],map_list4[:,:-1]))
+            #print(mapList.shape,'------------------------------------------------------------------------------------------------------------------------')
+            return mapList
 
         else:
             data = self.agent.occupancy_map.get_map(transform=self.agent.vehicle.transform,
@@ -303,7 +321,7 @@ class ROARppoEnvE2E(ROAREnv):
         self.agent.spawn_counter = spawn_params["spawn_int_map"][self.agent_config.spawn_point_id]
         print(self.agent.spawn_counter)
         self.steps=0
-        for _ in range(10):
+        for _ in range(3):
             #print('step '+str(self.steps))
             self.agent.kwargs["control"] = VehicleControl(throttle=1.0,
                                                             steering=0.0,

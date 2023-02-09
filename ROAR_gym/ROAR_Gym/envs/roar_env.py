@@ -124,12 +124,16 @@ class ROAREnv(gym.Env, ABC):
 
 
 class LoggingCallback(BaseCallback):
-    def __init__(self, model: BaseAlgorithm, verbose=0):
+    def __init__(self, model: BaseAlgorithm, verbose=0, print_period = 100):
         super().__init__(verbose)
         self.init_callback(model=model)
+        self.print_period = print_period
 
     def _on_step(self) -> bool:
         curr_step = self.locals.get("step")
+        if self.num_timesteps % self.print_period != 0:
+            return True
+        
         info = {
             # "num_collected_steps": self.locals.get("num_collected_steps"),
             # "reward": self.locals.get("reward"),

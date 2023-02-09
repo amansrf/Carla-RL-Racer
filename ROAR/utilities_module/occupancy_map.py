@@ -340,6 +340,7 @@ class OccupancyGridMap(Module):
         Returns:
             np.ndarray of float32
         """
+        boundary_size=view_size
         num_frames=len(transform_list)
         map_to_view = self._map
         yaw = -transform_list[-1].rotation.yaw
