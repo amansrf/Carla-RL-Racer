@@ -532,11 +532,13 @@ class OccupancyGridMap(Module):
         a,b=self._height_map.shape
         s=84*8
         _max_diff=0
-        print(_max_diff,'----------------------------------------------------------------')
-        for i in range(a-s):
-            for j in range(b-s):
-                _max_diff=np.max(self._height_map[i:i+s,j:j+s])-np.min(self._height_map[i:i+s,j:j+s])
-        print(_max_diff,'----------------------------------------------------------------')
+        # print(_max_diff,'----------------------------------------------------------------')
+        # _idx=np.zeros((2,s*(a-s),s*(b-s)))
+        # _x=
+        # for i in range(a-s):
+        #     for j in range(b-s):
+        #         _max_diff=np.max(self._height_map[i:i+s,j:j+s])-np.min(self._height_map[i:i+s,j:j+s])
+        # print(_max_diff,'----------------------------------------------------------------')
         self._height_map=np.pad(self._height_map,((self.pad,self.pad),(self.pad,self.pad)))
         self._height_map*=self._map
 

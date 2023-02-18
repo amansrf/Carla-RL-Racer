@@ -192,9 +192,9 @@ class ROARppoEnvE2E(ROAREnv):
         elif self.crash_check: #elif self.overlap:
             print("pls")
             return True
-        elif self.overlap:
-            print("overlap--------------------------------------------------------------")
-            return True
+        # elif self.overlap:
+        #     print("overlap--------------------------------------------------------------")
+        #     return True
         elif self.agent.finish_loop:
             print("halp")
             self.complete_loop=True
