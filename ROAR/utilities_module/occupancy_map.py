@@ -47,6 +47,7 @@ class OccupancyGridMap(Module):
         self._agent = agent
         config = OccupancyGridMapConfig.parse_file(self._agent.agent_settings.occu_map_config_path)
         self._map: Optional[np.ndarray] = None
+        self._height_map: Optional[np.ndarray] = None
         self._world_coord_resolution = config.world_coord_resolution
         self._absolute_maximum_map_size = config.absolute_maximum_map_size
 
@@ -69,6 +70,7 @@ class OccupancyGridMap(Module):
         self.curr_obstacle_world_coords = None
         self._curr_obstacle_occu_coords = None
         self._static_obstacles: Optional[np.ndarray] = None
+        self.pad=4000
 
     def _initialize_map(self):
         x_total = self._max_x - self._min_x + 2 * self._map_additiona_padding
@@ -206,6 +208,8 @@ class OccupancyGridMap(Module):
             print(np.shape(curr_map))
             print(e)
 
+    
+
     def get_map(self,
                 transform: Optional[Transform] = None,
                 view_size: Tuple[int, int] = (100, 100),
@@ -316,7 +320,54 @@ class OccupancyGridMap(Module):
         coord[[0,1]]=coord[[1,0]]
         self._map[tuple(coord)] -= bbox.get_value()
 
+    def get_wall(self,
+                transform,
+                view_size = (100, 100)) -> np.ndarray:
+        boundary_size=(view_size[0]*2,view_size[1]*2)
+        # print(boundary_size)
+        map_to_view = self._map
+        yaw = -transform.rotation.yaw
+        occu_cord = self.location_to_occu_cord(location=transform.location)
+        x, y = occu_cord[0]+self.pad
+        first_cut_size = (view_size[0] + boundary_size[0], view_size[1] + boundary_size[1])
+        map_to_view = map_to_view[y - first_cut_size[1] // 2: y + first_cut_size[1] // 2,
+                  x - first_cut_size[0] // 2: x + first_cut_size[0] // 2].copy()
+        # print(map_to_view.shape)
+        m_map=map_to_view.copy()
+        image = Image.fromarray(m_map)
+        image = image.rotate(yaw)
+        m_map = np.asarray(image)
+        x_extra, y_extra = boundary_size[0] // 2, boundary_size[1] // 2
+        m_map = m_map[y_extra-view_size[1] // 4 : m_map.shape[1] - y_extra-view_size[1] // 4,
+                        x_extra: m_map.shape[0] - x_extra]
+        return m_map
 
+    def get_wall1248(self,
+                transform,
+                view_size = (100, 100)) -> np.ndarray:
+        view_size=(view_size[0]*8,view_size[1]*8)
+        boundary_size=(view_size[0]*2,view_size[1]*2)
+        # print(boundary_size)
+        map_to_view = self._height_map
+        # print(self._map.shape,map_to_view.shape)
+        yaw = -transform.rotation.yaw
+        occu_cord = self.location_to_occu_cord(location=transform.location)
+        x, y = occu_cord[0]+self.pad
+        first_cut_size = (view_size[0] + boundary_size[0], view_size[1] + boundary_size[1])
+        map_to_view = map_to_view[y - first_cut_size[1] // 2: y + first_cut_size[1] // 2,
+                  x - first_cut_size[0] // 2: x + first_cut_size[0] // 2].copy()
+        print(np.min(map_to_view[np.nonzero(map_to_view)]),np.max(map_to_view[np.nonzero(map_to_view)]))
+        # print(map_to_view.shape)
+        m_map=map_to_view.copy()
+        image = Image.fromarray(m_map)
+        image = image.rotate(yaw)
+        m_map = np.asarray(image)
+        mapList=[]
+        for i in [1,2,4,8]:
+            x_extra, y_extra = boundary_size[0] // 2+view_size[0]*(8-i)//16, boundary_size[1] // 2+view_size[0]*(8-i)//16
+            mapList.append( m_map[y_extra-view_size[1] // 4*i//8 : m_map.shape[1] - y_extra-view_size[1] // 4*i//8,
+                            x_extra: m_map.shape[0] - x_extra])
+        return mapList
 
     # @profile
     def get_map_baseline(self,
@@ -340,15 +391,15 @@ class OccupancyGridMap(Module):
         Returns:
             np.ndarray of float32
         """
-        boundary_size=view_size
+        boundary_size=(view_size[0]*2,view_size[1]*2)
         num_frames=len(transform_list)
         map_to_view = self._map
         yaw = -transform_list[-1].rotation.yaw
         occu_cord = self.location_to_occu_cord(location=transform_list[-1].location)
         x, y = occu_cord[0]
         first_cut_size = (view_size[0] + boundary_size[0], view_size[1] + boundary_size[1])
-        map_to_view = map_to_view[y - first_cut_size[1] // 2: y + first_cut_size[1] // 2,
-                  x - first_cut_size[0] // 2: x + first_cut_size[0] // 2].copy()
+        map_to_view = map_to_view[y - first_cut_size[1] // 2+self.pad: y + first_cut_size[1] // 2+self.pad,
+                  x - first_cut_size[0] // 2+self.pad: x + first_cut_size[0] // 2+self.pad].copy()
 
         # cv2.imshow("data", map_to_view) # uncomment to show occu map
         # if cv2.waitKey(0) == ord("q") & 0xFF:
@@ -381,9 +432,9 @@ class OccupancyGridMap(Module):
             vehicle_y += (first_cut_size[1] // 2)-y
             size=2
             v_map[vehicle_y-size:vehicle_y+1+size, vehicle_x-size:vehicle_x+1+size] = 0.8
-            vehicle_locations = map_to_view[vehicle_y - size : vehicle_y + 1+size, vehicle_x - size: vehicle_x + 1+size]
-            # if np.any(vehicle_locations == 1):
-            #     overlap = True
+            vehicle_locations = map_to_view[vehicle_y, vehicle_x]
+            if np.any(vehicle_locations == 1):
+                overlap = True
             # v_map[vehicle_y, vehicle_x] = 0.8
 
             w_map=map_to_view.copy()
@@ -455,7 +506,39 @@ class OccupancyGridMap(Module):
                                            f"does not match the expected shape [{self._map.shape}]"
         self._map = m
         self._map=np.float32(np.divide(self._map,np.max(self._map)))
+        self._map=np.pad(self._map,((self.pad,self.pad),(self.pad,self.pad)))
         self._static_obstacles = np.vstack([np.where(self._map == 1)]).T
+    
+    def load_height_from_file(self, file_path: Path):
+        """
+        Load a map from file_path.
+
+        Expected to be the same size as the map
+
+        Args:
+            file_path: a npy file that stores the static map
+
+        Returns:
+
+        """
+        m = np.load(file_path.as_posix())
+        self._height_map = m
+        self._minh=np.min(self._height_map[np.nonzero(self._height_map)])
+        self._height_map-=self._minh
+        self.maxh_diff=np.max(self._height_map)
+        self._height_map=np.float32(np.divide(self._height_map,self.maxh_diff/0.9))
+        self._height_map[self._height_map<0]=-0.1
+        self._height_map+=0.1
+        a,b=self._height_map.shape
+        s=84*8
+        _max_diff=0
+        print(_max_diff,'----------------------------------------------------------------')
+        for i in range(a-s):
+            for j in range(b-s):
+                _max_diff=np.max(self._height_map[i:i+s,j:j+s])-np.min(self._height_map[i:i+s,j:j+s])
+        print(_max_diff,'----------------------------------------------------------------')
+        self._height_map=np.pad(self._height_map,((self.pad,self.pad),(self.pad,self.pad)))
+        self._height_map*=self._map
 
 
 class OccupancyGridMapConfig(BaseModel):

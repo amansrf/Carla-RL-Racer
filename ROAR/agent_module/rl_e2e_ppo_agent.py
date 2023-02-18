@@ -28,6 +28,8 @@ class RLe2ePPOAgent(Agent):
 
         occ_file_path = Path(agent_settings.occu_map_path)
         self.occupancy_map.load_from_file(occ_file_path)
+        occ_height_file_path = Path(agent_settings.occu_height_map_path)
+        self.occupancy_map.load_height_from_file(occ_height_file_path)
 
         self.plan_lst = list(self.mission_planner.produce_single_lap_mission_plan())
 

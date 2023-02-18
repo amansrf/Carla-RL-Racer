@@ -83,6 +83,7 @@ class Configuration(BaseModel):
     lqr_config_file_path: str = Field(default="./ROAR_Sim/configurations/lqr_config.json")
     occu_map_config_path: str = Field(default="./ROAR/configurations/carla/carla_occu_map_config.json")
     occu_map_path: str = Field(default="./ROAR/ROAR_Sim/data/final3.npy")
+    occu_height_map_path: str = Field(default="./ROAR/ROAR_Sim/data/final3.npy")
     depth_to_pcd_config_path: str = Field(default="./ROAR/configurations/carla/carla_depth_to_pcd_config.json")
     ground_plane_detection_config_path: str = Field(default="./ROAR/configurations/carla/carla_ground_plane_detection_config.json")
     simple_waypoint_local_planner_config_file_path: str = \
