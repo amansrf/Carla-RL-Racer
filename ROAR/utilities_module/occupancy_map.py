@@ -356,12 +356,20 @@ class OccupancyGridMap(Module):
         first_cut_size = (view_size[0] + boundary_size[0], view_size[1] + boundary_size[1])
         map_to_view = map_to_view[y - first_cut_size[1] // 2: y + first_cut_size[1] // 2,
                   x - first_cut_size[0] // 2: x + first_cut_size[0] // 2].copy()
-        print(np.min(map_to_view[np.nonzero(map_to_view)]),np.max(map_to_view[np.nonzero(map_to_view)]))
+        # print(np.min(map_to_view[np.nonzero(map_to_view)]),np.max(map_to_view[np.nonzero(map_to_view)]))
         # print(map_to_view.shape)
-        m_map=map_to_view.copy()
+        m_map=np.float32(map_to_view.copy())
+        # print(m_map.shape)
+        m_map[m_map==0]=np.nan
+        m_map-=transform.location.y
+        m_map/=600
+        m_map+=0.5
+        np.nan_to_num(m_map,False)
+        # print(np.max(m_map),m_map.dtype,'------------------------------')
         image = Image.fromarray(m_map)
         image = image.rotate(yaw)
         m_map = np.asarray(image)
+        
         mapList=[]
         for i in [1,2,4,8]:
             x_extra, y_extra = boundary_size[0] // 2+view_size[0]*(8-i)//16, boundary_size[1] // 2+view_size[0]*(8-i)//16
@@ -523,22 +531,29 @@ class OccupancyGridMap(Module):
         """
         m = np.load(file_path.as_posix())
         self._height_map = m
-        self._minh=np.min(self._height_map[np.nonzero(self._height_map)])
-        self._height_map-=self._minh
-        self.maxh_diff=np.max(self._height_map)
-        self._height_map=np.float32(np.divide(self._height_map,self.maxh_diff/0.9))
-        self._height_map[self._height_map<0]=-0.1
-        self._height_map+=0.1
-        a,b=self._height_map.shape
-        s=84*8
-        _max_diff=0
+
+        # a,b=self._height_map.shape
+        # s=84*8
+        # _max_diff=0
         # print(_max_diff,'----------------------------------------------------------------')
-        # _idx=np.zeros((2,s*(a-s),s*(b-s)))
-        # _x=
-        # for i in range(a-s):
-        #     for j in range(b-s):
-        #         _max_diff=np.max(self._height_map[i:i+s,j:j+s])-np.min(self._height_map[i:i+s,j:j+s])
+        # for i in range(0,a-s,10):
+        #     print(i)
+        #     for j in range(0,b-s,10):
+        #         t=self._height_map[i:i+s,j:j+s]
+        #         if np.all(t==0): continue
+        #         _max_diff=max(_max_diff,np.max(t[np.nonzero(t)])-np.min(t[np.nonzero(t)]))
+        # with open('diff.txt', 'w') as f:
+        #     f.write(str(_max_diff))
         # print(_max_diff,'----------------------------------------------------------------')
+
+        # self._minh=np.min(self._height_map[np.nonzero(self._height_map)])
+        # self._height_map-=self._minh
+        # self.maxh_diff=np.max(self._height_map)
+        # self._height_map=np.float32(np.divide(self._height_map,270/0.9))
+        # self._height_map[self._height_map<0]=-0.1
+        # self._height_map+=0.1
+        
+        
         self._height_map=np.pad(self._height_map,((self.pad,self.pad),(self.pad,self.pad)))
         self._height_map*=self._map
 

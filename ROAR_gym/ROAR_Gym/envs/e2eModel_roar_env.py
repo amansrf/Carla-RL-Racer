@@ -192,9 +192,9 @@ class ROARppoEnvE2E(ROAREnv):
         elif self.crash_check: #elif self.overlap:
             print("pls")
             return True
-        # elif self.overlap:
-        #     print("overlap--------------------------------------------------------------")
-        #     return True
+        elif self.overlap:
+            print("overlap--------------------------------------------------------------")
+            return True
         elif self.agent.finish_loop:
             print("halp")
             self.complete_loop=True
@@ -327,7 +327,7 @@ class ROARppoEnvE2E(ROAREnv):
             self.largest_steps=self.steps
         elif self.complete_loop and self.agent.finish_loop and self.steps<self.largest_steps:
             self.largest_steps=self.steps
-
+        self.overlap=False
         # Change Spawn Point before reset
         self.agent_config.spawn_point_id = next_spawn_point(self.agent_config.spawn_point_id)
         print("Spawn Pt ID", self.agent_config.spawn_point_id)

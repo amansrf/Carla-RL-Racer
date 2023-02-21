@@ -10,15 +10,15 @@ sys.path.append(Path(os.getcwd()).parent.as_posix())
 misc_params = {
   "env_name": 'roar-e2e-ppo-v0',
   "run_fps": 32,  # TODO Link to the environment RUN_FPS
-  "model_directory": Path("./output/PPOe2e_major_new_map_5_trial"),
-  "run_name": "major_new_map_5_trial",
+  "model_directory": Path("./output/PPOe2e_major_new_map_7_trial"),
+  "run_name": "major_new_map_7_trial",
   "total_timesteps": int(1e6),
 }
 
 spawn_params = {
   "num_spawn_pts": 13,  # Last one is 12s
-  "init_spawn_pt": 1,
-  "dynamic_spawn": False,  # True if start at different spawn locations on reset
+  "init_spawn_pt": 0,
+  "dynamic_spawn": True,  # True if start at different spawn locations on reset
 
   # Spawn Guide:
   # 1 = Roundabout
