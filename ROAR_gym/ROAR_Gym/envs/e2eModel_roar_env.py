@@ -26,9 +26,10 @@ from ROAR_gym.configurations.ppo_configuration import spawn_params
 mode='baseline'
 FRAME_STACK = 4
 CONFIG = {
-    "x_res": 84,
-    "y_res": 84
+    "x_res": 64,
+    "y_res": 64
 }
+WALL_MAGNITUDES = [1,2,4,8]
 
 spawn_params["spawn_int_map"] = np.array([39, 91, 140, 224, 312, 442, 556, 730, 782, 898, 1142, 1283, 0])
 
@@ -280,11 +281,11 @@ class ROARppoEnvE2E(ROAREnv):
             # map_list4=skimage.measure.block_reduce(map_list4, (1,1,4,4), np.max)
             map_list=map_list[:,-1:]
             # wall_list=np.array([[wall],[wall2],[wall4],[wall8]])
-            wall_list=self.agent.occupancy_map.get_wall1248(transform=self.agent.vt_queue[-1],
+            wall_list=self.agent.occupancy_map.get_wall_series(transform=self.agent.vt_queue[-1],magnitude=WALL_MAGNITUDES,
                                                     view_size=(CONFIG["x_res"], CONFIG["y_res"]))
             # print([x.shape for x in wall_list])
 
-            wall_list=np.array([[skimage.measure.block_reduce(wall_list[i], ([1,2,4,8][i],[1,2,4,8][i]), np.max)] for i in range(len(wall_list))])
+            wall_list=np.array([[skimage.measure.block_reduce(wall_list[i], (WALL_MAGNITUDES[i],WALL_MAGNITUDES[i]), np.max)] for i in range(len(wall_list))])
             # print(map_list.shape,wall_list.shape)
             map_list=np.hstack((map_list,wall_list))
             cv2.imshow("data", np.hstack(np.hstack(map_list))) # uncomment to show occu map
