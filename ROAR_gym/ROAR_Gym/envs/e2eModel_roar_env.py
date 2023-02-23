@@ -35,8 +35,8 @@ spawn_params["spawn_int_map"] = np.array([39, 91, 140, 224, 312, 442, 556, 730, 
 class ROARppoEnvE2E(ROAREnv):
     def __init__(self, params):
         super().__init__(params)
-        low=np.array([-2.5, -4.0, 1.0])
-        high=np.array([-0.5, 4.0, 3.0])
+        low=np.array([-2.5, -3.0, 1.0])
+        high=np.array([-0.5, 3.0, 3.0])
         self.mode=mode
         self.action_space = Box(low=low, high=high, dtype=np.float32)
 
@@ -113,7 +113,7 @@ class ROARppoEnvE2E(ROAREnv):
         #     throttle = 0
         #     braking = 0.8
 
-        steering = action[1] / 4
+        steering = action[1] / 3
 
         if self.deadzone_trigger and abs(steering) < self.deadzone_level:
             steering = 0.0
