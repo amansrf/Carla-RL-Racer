@@ -26,8 +26,8 @@ from ROAR_gym.configurations.ppo_configuration import spawn_params
 mode='baseline'
 FRAME_STACK = 4
 CONFIG = {
-    "x_res": 84,
-    "y_res": 84
+    "x_res": 36,
+    "y_res": 36
 }
 
 spawn_params["spawn_int_map"] = np.array([39, 91, 140, 224, 312, 442, 556, 730, 782, 898, 1142, 1283, 0])

@@ -149,3 +149,4 @@ credential.json
 ROAR_gym/runs
 ROAR_gym/models
 ROAR_gym/wandb
+waylines_debugger.ipynb
