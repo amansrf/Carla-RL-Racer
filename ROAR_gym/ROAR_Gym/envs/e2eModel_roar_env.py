@@ -26,8 +26,8 @@ from ROAR_gym.configurations.ppo_configuration import spawn_params
 mode='baseline'
 FRAME_STACK = 4
 CONFIG = {
-    "x_res": 64,
-    "y_res": 64
+    "x_res": 36,
+    "y_res": 36
 }
 WALL_MAGNITUDES = [1,2,4,8]
 
@@ -101,6 +101,8 @@ class ROARppoEnvE2E(ROAREnv):
         throttle = (action[0] + 0.5) / 2 + 1
         braking = (action[2] - 1.0) / 2
 
+        braking = 0.0 # TODO: This is for troubleshooting SAC. Remove this later
+
         # full_throttle_thre = 0.6
         # non_braking_thre = 0.4
         # throttle = min(1, throttle_check / full_throttle_thre)
@@ -123,6 +125,7 @@ class ROARppoEnvE2E(ROAREnv):
         self.agent.kwargs["control"] = VehicleControl(throttle=throttle,
                                                         steering=steering,
                                                         braking=braking)
+        #print(self.agent.kwargs)
 
         ob, reward, is_done, info = super(ROARppoEnvE2E, self).step(action)
 
@@ -250,6 +253,7 @@ class ROARppoEnvE2E(ROAREnv):
             assert(len(next_bbox_list)==10)
             map_list,overlap = self.agent.occupancy_map.get_map_baseline(transform_list=self.agent.vt_queue,
                                                     view_size=(CONFIG["x_res"], CONFIG["y_res"]),
+                                                    boundary_size=(CONFIG["x_res"]//2, CONFIG["y_res"]//2),
                                                     bbox_list=self.agent.frame_queue,
                                                                  next_bbox_list=next_bbox_list
                                                     )

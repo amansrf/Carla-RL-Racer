@@ -434,16 +434,28 @@ class Atari_SAC_Adapted_CNN(BaseFeaturesExtractor):
         super(Atari_SAC_Adapted_CNN, self).__init__(observation_space,features_dim)
         channels = observation_space.shape[0]*observation_space.shape[1]
         self.network = nn.Sequential(
-            # Scale(1/255),
-            layer_init(nn.Conv2d(channels, 32, 8, stride=4)),
+            layer_init(nn.Conv2d(channels, 32, 3, stride=1)),
+            nn.BatchNorm2d(32),
             nn.ReLU(),
-            layer_init(nn.Conv2d(32, 64, 4, stride=2)),
+            layer_init(nn.Conv2d(32, 64, 3, stride=1)),
             nn.ReLU(),
-            layer_init(nn.Conv2d(64, 64, 3, stride=1)),
+            nn.MaxPool2d(2),
+
+            layer_init(nn.Conv2d(64, 128, 3, stride=1)),
+            nn.ReLU(),
+            layer_init(nn.Conv2d(128, 256, 3, stride=1)),
+            nn.MaxPool2d(2),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
+            
+            layer_init(nn.Conv2d(256, 512, 3, stride=1)),
+            nn.ReLU(),
+            layer_init(nn.Conv2d(512, 512, 3, stride=1)),
             nn.ReLU(),
             nn.Flatten(),
-            layer_init(nn.Linear(1024, features_dim)),
-            # nn.ReLU(),
+            layer_init(nn.Linear(2048, 512)),
+            nn.ReLU(),
+            layer_init(nn.Linear(512, features_dim))
         )
 
     def forward(self, observations: th.Tensor) -> th.Tensor:
