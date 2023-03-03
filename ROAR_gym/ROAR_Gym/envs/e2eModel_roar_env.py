@@ -35,8 +35,10 @@ spawn_params["spawn_int_map"] = np.array([39, 91, 140, 224, 312, 442, 556, 730, 
 class ROARppoEnvE2E(ROAREnv):
     def __init__(self, params):
         super().__init__(params)
-        low=np.array([-2.5, -3.0, 1.0])
-        high=np.array([-0.5, 3.0, 3.0])
+        # low=np.array([-2.5, -3.0, 1.0])
+        # high=np.array([-0.5, 3.0, 3.0])
+        low=np.array([-4.5, -7.0, 8.0])
+        high=np.array([-2.5, 7.0, 9.0])
         self.mode=mode
         self.action_space = Box(low=low, high=high, dtype=np.float32)
 
@@ -97,8 +99,10 @@ class ROARppoEnvE2E(ROAREnv):
         self.steps += 1
 
         action = action.reshape((-1))
-        throttle = (action[0] + 0.5) / 2 + 1
-        braking = (action[2] - 1.0) / 2
+        # throttle = (action[0] + 0.5) / 2 + 1
+        throttle = (action[0] + 2.5) / 2 + 1
+        # braking = (action[2] - 1.0) / 2
+        braking = (action[2] - 8.0) / 2
 
         # full_throttle_thre = 0.6
         # non_braking_thre = 0.4
@@ -113,7 +117,8 @@ class ROARppoEnvE2E(ROAREnv):
         #     throttle = 0
         #     braking = 0.8
 
-        steering = action[1] / 3
+        # steering = action[1]/3
+        steering = action[1]/7
 
         if self.deadzone_trigger and abs(steering) < self.deadzone_level:
             steering = 0.0
@@ -192,9 +197,9 @@ class ROARppoEnvE2E(ROAREnv):
         elif self.crash_check: #elif self.overlap:
             print("pls")
             return True
-        elif self.overlap:
-            print("overlap--------------------------------------------------------------")
-            return True
+        # elif self.overlap:
+        #     print("overlap--------------------------------------------------------------")
+        #     return True
         elif self.agent.finish_loop:
             print("halp")
             self.complete_loop=True
@@ -219,7 +224,7 @@ class ROARppoEnvE2E(ROAREnv):
         if not (self.agent.bbox_list[(self.agent.int_counter - self.death_line_dis) % len(self.agent.bbox_list)].has_crossed(self.agent.vehicle.transform))[0]:
             reward -= 200
             self.crash_check = True
-        elif self.carla_runner.get_num_collision() > 0 or self.overlap:
+        elif self.carla_runner.get_num_collision() > 0:
             reward -= 200
             self.crash_check = True
 

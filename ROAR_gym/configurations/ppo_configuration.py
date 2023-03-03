@@ -10,15 +10,15 @@ sys.path.append(Path(os.getcwd()).parent.as_posix())
 misc_params = {
   "env_name": 'roar-e2e-ppo-v0',
   "run_fps": 32,  # TODO Link to the environment RUN_FPS
-  "model_directory": Path("./output/PPOe2e_major_new_map_10_trial"),
-  "run_name": "major_new_map_10_trial",
-  "total_timesteps": int(1e6),
+  "model_directory": Path("./output/PPOe2e_major_new_map_17_trial"),
+  "run_name": "major_new_map_17_trial",
+  "total_timesteps": int(1e6),#1e6
 }
 
 spawn_params = {
   "num_spawn_pts": 13,  # Last one is 12s
-  "init_spawn_pt": 0,
-  "dynamic_spawn": True,  # True if start at different spawn locations on reset
+  "init_spawn_pt": 1,
+  "dynamic_spawn": False,  # True if start at different spawn locations on reset
 
   # Spawn Guide:
   # 1 = Roundabout
@@ -32,7 +32,7 @@ spawn_params = {
   #   3. "linear backward" - After reset decrement spawn point by one. Loops back to num_spawn_pts after init reached
   #   4. "custom spawn pts" - Provide a custom list of spawn points.
   "dynamic_type": "custom spawn pts",
-  "custom_list": [0, 1, 2, 3, 4, 6, 7, 8, 10],  # List of custom spawn pts
+  "custom_list": [0, 2, 3, 4, 5, 6, 7, 8, 9, 10],  # List of custom spawn pts
 
                                                                                                                                                                                                                       
   "spawn_pt_iterator": 1,  # DO NOT TOUCH THIS! Used Internally!
@@ -46,7 +46,7 @@ wandb_saves = {
 
 PPO_params = dict(
   learning_rate = 0.00001,  # be smaller 2.5e-4
-  n_steps = 1024 * misc_params["run_fps"],
+  n_steps = 1024 * misc_params["run_fps"],#1024
   batch_size=64,  # mini_batch_size = 256?
   # n_epochs=10,
   gamma=0.99,  # rec range .9 - .99
@@ -55,8 +55,8 @@ PPO_params = dict(
   # clip_range_vf=None,
   # vf_coef=0.5,
   # max_grad_norm=0.5,
-  # use_sde=True,
-  # sde_sample_freq=5,
+  use_sde=True,
+  sde_sample_freq=5,
   # target_kl=None,
   # tensorboard_log=(Path(misc_params["model_directory"]) / "tensorboard").as_posix(),
   # create_eval_env=False,
