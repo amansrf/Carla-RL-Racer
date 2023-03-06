@@ -75,11 +75,12 @@ class ROAREnv(gym.Env, ABC):
         return self._get_obs(), self.get_reward(), self._terminal(), self._get_info()
 
     def reset(self) -> Any:
-        self.carla_runner.on_finish()
-        self.carla_runner = CarlaRunner(agent_settings=self.agent_config,
-                                        carla_settings=self.carla_config,
-                                        npc_agent_class=self.npc_agent_class)
-        vehicle = self.carla_runner.set_carla_world()
+        # self.carla_runner.on_finish()
+        # self.carla_runner = CarlaRunner(agent_settings=self.agent_config,
+        #                             carla_settings=self.carla_config,
+        #                             npc_agent_class=self.npc_agent_class)
+        # vehicle = self.carla_runner.set_carla_world()
+        vehicle=self.carla_runner.reset_world(self.agent_config)
 
         if self.agent:
             self.agent.reset(vehicle=vehicle)

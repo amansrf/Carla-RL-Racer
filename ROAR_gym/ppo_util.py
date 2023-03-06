@@ -460,6 +460,34 @@ class Atari_PPO_Adapted_36(BaseFeaturesExtractor):
         observations=observations.view(observations.shape[0],-1,*observations.shape[3:])
         #print(observations.shape)
         return self.network(observations)
+    
+class Atari_PPO_Shallow_24(BaseFeaturesExtractor):
+    """
+    Based on https://github.com/DarylRodrigo/rl_lib/blob/master/PPO/Models.py
+    """
+    def __init__(self, observation_space: gym.spaces.Box, features_dim: int = 256):
+        super(Atari_PPO_Shallow_24, self).__init__(observation_space,features_dim)
+        channels = observation_space.shape[0]*observation_space.shape[1]
+        self.network = nn.Sequential(
+            # Scale(1/255),
+            layer_init(nn.Conv2d(channels, 32, 4, stride=1)),
+            nn.ReLU(),
+            layer_init(nn.Conv2d(32, 64, 4, stride=1)),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+
+            layer_init(nn.Conv2d(64, 128, 4, stride=1)),
+            nn.ReLU(),
+            layer_init(nn.Conv2d(128, 256, 4, stride=1)),
+            nn.ReLU(),
+            nn.Flatten(),
+            layer_init(nn.Linear(9*256, features_dim))
+        )
+
+    def forward(self, observations: th.Tensor) -> th.Tensor:
+        observations=observations.view(observations.shape[0],-1,*observations.shape[3:])
+        #print(observations.shape)
+        return self.network(observations)
 
 def find_latest_model(root_path: Path) -> Optional[Path]:
     import os

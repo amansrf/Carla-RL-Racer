@@ -129,6 +129,15 @@ class CarlaRunner:
                 f"Unable to initiate the world due to error: {e}")
             raise e
 
+    def reset_world(self,agent_settings):
+        self.agent_settings=agent_settings
+        hud = HUD(self.carla_settings.width, self.carla_settings.height)
+        self.world = World(carla_world=self.client.get_world(), hud=hud,
+                               carla_settings=self.carla_settings,
+                               agent_settings=self.agent_settings)
+        return self.carla_bridge. \
+                convert_vehicle_from_source_to_agent(self.world.player)
+
     def start_game_loop(self,
                         agent,
                         use_manual_control=False,

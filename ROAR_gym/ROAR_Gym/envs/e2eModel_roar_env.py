@@ -26,8 +26,8 @@ from ROAR_gym.configurations.ppo_configuration import spawn_params
 mode='baseline'
 FRAME_STACK = 4
 CONFIG = {
-    "x_res": 36,
-    "y_res": 36
+    "x_res": 24,
+    "y_res": 24
 }
 
 spawn_params["spawn_int_map"] = np.array([39, 91, 140, 224, 312, 442, 556, 730, 782, 898, 1142, 1283, 0])
@@ -208,31 +208,31 @@ class ROARppoEnvE2E(ROAREnv):
             return False
 
     def get_reward(self) -> float:
-        reward = -1
+        reward = 0
 
         
-        if abs(self.agent.vehicle.control.steering) <= 0.1:
-            reward += 0.1
+        # if abs(self.agent.vehicle.control.steering) <= 0.1:
+        #     reward += 0.1
 
         if self.crash_check:
             print("no reward")
             return 0
 
         if self.agent.cross_reward > self.prev_cross_reward:
-            reward += (self.agent.cross_reward - self.prev_cross_reward)*self.agent.interval*self.time_to_waypoint_ratio
+            reward += (self.agent.cross_reward - self.prev_cross_reward)*self.agent.interval*self.time_to_waypoint_ratio*10
 
         if not (self.agent.bbox_list[(self.agent.int_counter - self.death_line_dis) % len(self.agent.bbox_list)].has_crossed(self.agent.vehicle.transform))[0]:
-            reward -= 200
+            # reward -= 200
             self.crash_check = True
         elif self.carla_runner.get_num_collision() > 0:
-            reward -= 200
+            # reward -= 200
             self.crash_check = True
 
-        # if self.agent.int_counter > 1 and self.agent.vehicle.get_speed(self.agent.vehicle) < 1:
-        #     self.stopped_counter += 1
-        #     if self.stopped_counter >= self.stopped_max_count:
-        #         reward -= 200
-        #         self.crash_check = True
+        if self.agent.int_counter > 1 and self.agent.vehicle.get_speed(self.agent.vehicle) < 1:
+            self.stopped_counter += 1
+            if self.stopped_counter >= self.stopped_max_count:
+                # reward -= 200
+                self.crash_check = True
 
         
 
