@@ -32,7 +32,7 @@ spawn_params = {
   #   3. "linear backward" - After reset decrement spawn point by one. Loops back to num_spawn_pts after init reached
   #   4. "custom spawn pts" - Provide a custom list of spawn points.
   "dynamic_type": "custom spawn pts",
-  "custom_list": [0, 1, 2, 3, 4, 6, 7, 8, 10],  # List of custom spawn pts
+  "custom_list": [0,1, 2, 3, 4, 5, 6, 7, 8, 9, 10],  # List of custom spawn pts
 
                                                                                                                                                                                                                       
   "spawn_pt_iterator": 1,  # DO NOT TOUCH THIS! Used Internally!
@@ -41,12 +41,12 @@ spawn_params = {
 
 wandb_saves = {
   "gradient_save_freq": 512 * misc_params["run_fps"] * 10,
-  "model_save_freq": 50 * misc_params["run_fps"] * 10,
+  "model_save_freq": 1024 * misc_params["run_fps"],
 }
 
 PPO_params = dict(
   learning_rate = 0.00001,  # be smaller 2.5e-4
-  n_steps = 1024 * misc_params["run_fps"],
+  n_steps = 64 * misc_params["run_fps"],#1024
   batch_size=64,  # mini_batch_size = 256?
   # n_epochs=10,
   gamma=0.99,  # rec range .9 - .99
@@ -55,8 +55,8 @@ PPO_params = dict(
   # clip_range_vf=None,
   # vf_coef=0.5,
   # max_grad_norm=0.5,
-  # use_sde=True,
-  # sde_sample_freq=5,
+  use_sde=True,
+  sde_sample_freq=5,
   # target_kl=None,
   # tensorboard_log=(Path(misc_params["model_directory"]) / "tensorboard").as_posix(),
   # create_eval_env=False,
