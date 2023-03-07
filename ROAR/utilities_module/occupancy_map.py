@@ -342,10 +342,11 @@ class OccupancyGridMap(Module):
                         x_extra: m_map.shape[0] - x_extra]
         return m_map
 
-    def get_wall1248(self,
+    def get_wall_series(self,
+                magnitude,
                 transform,
                 view_size = (100, 100)) -> np.ndarray:
-        view_size=(view_size[0]*8,view_size[1]*8)
+        view_size=(view_size[0]*np.max(magnitude),view_size[1]*np.max(magnitude))
         boundary_size=(view_size[0]*2,view_size[1]*2)
         # print(boundary_size)
         map_to_view = self._height_map
@@ -371,7 +372,7 @@ class OccupancyGridMap(Module):
         m_map = np.asarray(image)
         
         mapList=[]
-        for i in [1,2,4,8]:
+        for i in magnitude:
             x_extra, y_extra = boundary_size[0] // 2+view_size[0]*(8-i)//16, boundary_size[1] // 2+view_size[0]*(8-i)//16
             mapList.append( m_map[y_extra-view_size[1] // 4*i//8 : m_map.shape[1] - y_extra-view_size[1] // 4*i//8,
                             x_extra: m_map.shape[0] - x_extra])

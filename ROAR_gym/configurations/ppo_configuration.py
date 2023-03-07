@@ -10,9 +10,9 @@ sys.path.append(Path(os.getcwd()).parent.as_posix())
 misc_params = {
   "env_name": 'roar-e2e-ppo-v0',
   "run_fps": 32,  # TODO Link to the environment RUN_FPS
-  "model_directory": Path("./output/PPOe2e_major_new_map_27_trial"),
-  "run_name": "major_new_map_27_trial",
-  "total_timesteps": int(1e6),#1e6
+  "model_directory": Path("./output/SACe2e_major_new_map_v2"),
+  "run_name": "v2",
+  "total_timesteps": int(1e6),
 }
 
 spawn_params = {
@@ -63,6 +63,19 @@ PPO_params = dict(
   # policy_kwargs=None,
   verbose=1,
   seed=1,
-  device=th.device('cuda:0' if th.cuda.is_available() else 'cpu'),
+  device=th.device('cuda' if th.cuda.is_available() else 'cpu'),
   # _init_setup_model=True,
+)
+
+SAC_params = dict(
+  learning_rate = 2e-4,
+  batch_size=64,
+  ent_coef="auto",
+  target_entropy="auto",
+  use_sde=True,
+  sde_sample_freq=5*misc_params["run_fps"],
+  buffer_size=256_000, #default 1_000_000,
+  verbose=1,
+  seed=1,
+  device=th.device('cuda' if th.cuda.is_available() else 'cpu'),
 )
