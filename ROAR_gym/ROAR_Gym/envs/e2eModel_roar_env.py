@@ -37,8 +37,12 @@ class ROARppoEnvE2E(ROAREnv):
         super().__init__(params)
         # low=np.array([-2.5, -3.0, 1.0])
         # high=np.array([-0.5, 3.0, 3.0])
-        low=np.array([-4.5, -7.0, 8.0])
-        high=np.array([-2.5, 7.0, 9.0])
+        # low=np.array([-4.5, -7.0, 8.0])
+        # high=np.array([-2.5, 7.0, 9.0])
+        # low=np.array([-3.5, -10.0, 8.0,-7.0])
+        # high=np.array([-1.5, 10.0, 10.0,3.0])
+        low=np.array([-9, -10.0])
+        high=np.array([-1, 10.0])
         self.mode=mode
         self.action_space = Box(low=low, high=high, dtype=np.float32)
 
@@ -63,7 +67,7 @@ class ROARppoEnvE2E(ROAREnv):
         self.death_line_dis = 5
         ## used to check if stalled
         self.stopped_counter = 0
-        self.stopped_max_count = 100
+        self.stopped_max_count = 5*self.fps
         # used to track episode highspeed
         self.speed = 0
         self.current_hs = 0
@@ -93,36 +97,100 @@ class ROARppoEnvE2E(ROAREnv):
         print("#########################\n",self.agent.spawn_counter)
 
 
+    # def step(self, action: Any) -> Tuple[Any, float, bool, dict]:
+    #     obs = []
+    #     rewards = []
+    #     self.steps += 1
+
+    #     action = action.reshape((-1))
+    #     # throttle = (action[0] + 0.5) / 2 + 1
+    #     throttle = (action[0] + 2.5) / 2 + 1
+    #     # braking = (action[2] - 1.0) / 2
+    #     braking = (action[2] - 8.0) / 2
+
+    #     # full_throttle_thre = 0.6
+    #     # non_braking_thre = 0.4
+    #     # throttle = min(1, throttle_check / full_throttle_thre)
+    #     # braking = max(0, (braking_check - non_braking_thre) / (1 - non_braking_thre))
+
+    #     # check = (action[0] + 0.5) / 2 + 1
+    #     # if check > 0.5:
+    #     #     throttle = 0.7
+    #     #     braking = 0
+    #     # else:
+    #     #     throttle = 0
+    #     #     braking = 0.8
+
+    #     # steering = action[1]/3
+    #     steering = action[1]/7
+
+    #     if self.deadzone_trigger and abs(steering) < self.deadzone_level:
+    #         steering = 0.0
+
+
+    #     self.agent.kwargs["control"] = VehicleControl(throttle=throttle,
+    #                                                     steering=steering,
+    #                                                     braking=braking)
+
+    #     ob, reward, is_done, info = super(ROARppoEnvE2E, self).step(action)
+
+
+    #     obs.append(ob)
+    #     rewards.append(reward)
+
+    #     self.render()
+    #     self.frame_reward = sum(rewards)
+    #     self.ep_rewards += sum(rewards)
+
+    #     self.speed = self.agent.vehicle.get_speed(self.agent.vehicle)
+    #     if self.speed > self.current_hs:
+    #         self.current_hs = self.speed
+
+    #     if is_done:
+    #         self.wandb_logger()
+    #         self.crash_check = False
+    #         self.update_highscore()
+    #     return np.array(obs), self.frame_reward, self._terminal(), self._get_info()
+    
     def step(self, action: Any) -> Tuple[Any, float, bool, dict]:
         obs = []
         rewards = []
         self.steps += 1
 
         action = action.reshape((-1))
-        # throttle = (action[0] + 0.5) / 2 + 1
-        throttle = (action[0] + 2.5) / 2 + 1
-        # braking = (action[2] - 1.0) / 2
-        braking = (action[2] - 8.0) / 2
+        # decision=action[3]
+        # # if decision<-2: #turning mode
+        # #     throttle = (action[0] + 1.5) / 2 + 1
+        # #     # if action[1]>=5:
+        # #     #     action[1]=5.0
+        # #     # if action[1]<=-5:
+        # #     #     action[1]=-5.0
+        # #     steering = action[1]/10
+        # #     braking=(action[2]-8)/2
+            
+        # # else: #speeding mode
+        # #     throttle = (action[0] + 1.5) / 2 + 1
+        # #     steering = action[1]/80
+        # #     if action[2]<=9:
+        # #         action[2]=9.0
+        # #     braking=(action[2]-9)/4
+        
+        # throttle = (action[0] + 1.5) / 2 + 1
+        # steering = action[1]/10/((decision+7)/10*7+1)
+        # # if action[2]<=8+(decision+7)/10:
+        # #         action[2]=8+(decision+7)/10
+        # # braking=(action[2]-8-(decision+7)/10)/2/((decision+7)/10*2+1)
+        # braking=(action[2]-8)/2
 
-        # full_throttle_thre = 0.6
-        # non_braking_thre = 0.4
-        # throttle = min(1, throttle_check / full_throttle_thre)
-        # braking = max(0, (braking_check - non_braking_thre) / (1 - non_braking_thre))
-
-        # check = (action[0] + 0.5) / 2 + 1
-        # if check > 0.5:
-        #     throttle = 0.7
-        #     braking = 0
-        # else:
-        #     throttle = 0
-        #     braking = 0.8
-
-        # steering = action[1]/3
-        steering = action[1]/7
-
-        if self.deadzone_trigger and abs(steering) < self.deadzone_level:
-            steering = 0.0
-
+        decision=action[0]+8
+        if decision<0:
+            throttle=0
+            braking=abs(decision)
+        else:
+            throttle=decision/7
+            braking=0
+        steering=action[1]/10
+            
 
         self.agent.kwargs["control"] = VehicleControl(throttle=throttle,
                                                         steering=steering,
@@ -219,7 +287,7 @@ class ROARppoEnvE2E(ROAREnv):
             return 0
 
         if self.agent.cross_reward > self.prev_cross_reward:
-            reward += (self.agent.cross_reward - self.prev_cross_reward)*self.agent.interval*self.time_to_waypoint_ratio*10
+            reward += (self.agent.cross_reward - self.prev_cross_reward)*self.agent.interval*self.time_to_waypoint_ratio*100
 
         if not (self.agent.bbox_list[(self.agent.int_counter - self.death_line_dis) % len(self.agent.bbox_list)].has_crossed(self.agent.vehicle.transform))[0]:
             # reward -= 200
