@@ -18,7 +18,7 @@ import scipy.stats
 from collections import deque
 
 class RLe2ePPOAgent(Agent):
-    def __init__(self, vehicle: Vehicle, agent_settings: AgentConfig, **kwargs):
+    def __init__(self, vehicle: Vehicle, agent_settings: AgentConfig, frame_stack=4, **kwargs):
         super().__init__(vehicle, agent_settings, **kwargs)
         self.mission_planner = WaypointFollowingMissionPlanner(agent=self)
 
@@ -38,6 +38,7 @@ class RLe2ePPOAgent(Agent):
         self.look_back = self.kwargs.get('look_back', 5)
         self.look_back_max = self.kwargs.get('look_back_max', 10)
         self.thres = self.kwargs.get('thres', 1e-3)
+        self.frame_stack = frame_stack
 
         if self.flatten:
             self.bbox_reward_list=[0.499 for _ in range(20)]
@@ -52,8 +53,8 @@ class RLe2ePPOAgent(Agent):
         # self.curr_dist_to_strip = 0
         self.bbox: Optional[LineBBox] = None
         self.bbox_list = []# list of bbox
-        self.frame_queue = deque([None, None, None], maxlen=4)
-        self.vt_queue = deque([None, None, None], maxlen=4)
+        self.frame_queue = deque([None, None, None], maxlen=frame_stack)
+        self.vt_queue = deque([None, None, None], maxlen=frame_stack)
         self._get_all_bbox()
         for _ in range(4):
             self.bbox_step()
@@ -67,8 +68,8 @@ class RLe2ePPOAgent(Agent):
         self.finished = False
         # self.curr_dist_to_strip = 0
         self.bbox: Optional[LineBBox] = None
-        self.frame_queue = deque([None, None, None], maxlen=4)
-        self.vt_queue = deque([None, None, None], maxlen=4)
+        self.frame_queue = deque([None, None, None], maxlen=self.frame_stack)
+        self.vt_queue = deque([None, None, None], maxlen=self.frame_stack)
         for _ in range(4):
             self.bbox_step()
         self.finish_loop=False

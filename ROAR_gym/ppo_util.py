@@ -460,6 +460,7 @@ class Atari_PPO_Adapted_36(BaseFeaturesExtractor):
         observations=observations.view(observations.shape[0],-1,*observations.shape[3:])
         #print(observations.shape)
         return self.network(observations)
+
     
 class Atari_PPO_Shallow_24(BaseFeaturesExtractor):
     """

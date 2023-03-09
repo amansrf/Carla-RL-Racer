@@ -63,6 +63,19 @@ PPO_params = dict(
   # policy_kwargs=None,
   verbose=1,
   seed=1,
-  device=th.device('cuda:0' if th.cuda.is_available() else 'cpu'),
+  device=th.device('cuda' if th.cuda.is_available() else 'cpu'),
   # _init_setup_model=True,
+)
+
+SAC_params = dict(
+  learning_rate = 2e-4,
+  batch_size=64,
+  ent_coef="auto",
+  target_entropy="auto",
+  use_sde=True,
+  sde_sample_freq=5*misc_params["run_fps"],
+  buffer_size=256_000, #default 1_000_000,
+  verbose=1,
+  seed=1,
+  device=th.device('cuda' if th.cuda.is_available() else 'cpu'),
 )
