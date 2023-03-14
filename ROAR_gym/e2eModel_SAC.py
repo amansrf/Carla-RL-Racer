@@ -63,20 +63,20 @@ from ROAR.agent_module.forward_only_agent import ForwardOnlyAgent   # testing st
 # imports for reinforcement learning
 import gym
 import torch as th
-from stable_baselines3.ppo.ppo import PPO
-from stable_baselines3.ppo.policies import CnnPolicy
+from stable_baselines3.sac.sac import SAC
+from stable_baselines3.sac.policies import CnnPolicy
 from stable_baselines3.common.callbacks import CheckpointCallback, EveryNTimesteps, CallbackList, BaseCallback
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv, VecVideoRecorder
 
 
 # imports for helper functions and torch cnn models
-from ppo_util import find_latest_model, CustomMaxPoolCNN, Atari_PPO_Adapted_CNN,Atari_PPO_Shallow_24,Atari_PPO_Adapted_24
+from ppo_util import find_latest_model, CustomMaxPoolCNN, Atari_PPO_Adapted_CNN,Atari_PPO_Adapted_36,Atari_PPO_Shallow_24
 
 sys.path.append(Path(os.getcwd()).parent.as_posix())
 
 # imports from config files
-from configurations.ppo_configuration import PPO_params, misc_params, wandb_saves
+from configurations.ppo_configuration import PPO_params, misc_params, wandb_saves, SAC_params
 agent_config = AgentConfig.parse_file(Path("configurations/agent_configuration.json"))
 carla_config = CarlaConfig.parse_file(Path("configurations/carla_configuration.json"))
 
@@ -180,11 +180,11 @@ def main(pass_num):
 
     # Setting the feature extract or based on the environment mode
     policy_kwargs = dict(
-        features_extractor_class=Atari_PPO_Adapted_24,
+        features_extractor_class=Atari_PPO_Shallow_24,
         features_extractor_kwargs=dict(features_dim=256))
 
-    # training kwargs for PPO init
-    training_kwargs = PPO_params
+    # training kwargs for SAC init
+    training_kwargs = SAC_params
 
     # wandb config for current run hyper-parameters
     wandb_hp_config = {
@@ -205,7 +205,7 @@ def main(pass_num):
         )
 
         # Create model with tensorboard log
-        model = PPO(
+        model = SAC(
             CnnPolicy,
             env=env,
             policy_kwargs=policy_kwargs,
@@ -223,7 +223,7 @@ def main(pass_num):
 
         # Load the model
         print(latest_model_path)
-        model = PPO.load(
+        model = SAC.load(
             latest_model_path,
             env=env,
             policy_kwargs=policy_kwargs,
@@ -252,7 +252,7 @@ def main(pass_num):
     wandb_callback = WandbCallback(
         verbose=2,
         model_save_path=f"models/{run.id}",
-        gradient_save_freq=training_kwargs["n_steps"],
+        gradient_save_freq=1024*misc_params['run_fps'], #training_kwargs["n_steps"],
         model_save_freq=wandb_saves["model_save_freq"],
     )
 
