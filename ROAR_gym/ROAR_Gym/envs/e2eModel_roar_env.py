@@ -44,8 +44,8 @@ class ROARppoEnvE2E(ROAREnv):
         # high=np.array([-1.5, 10.0, 10.0,3.0])
         # low=np.array([-7, -10.0])
         # high=np.array([-1.5, 10.0])
-        low=np.array([-3.5, -3.0])
-        high=np.array([-0.5, 3.0])
+        low=np.array([-3.5, -2.0])
+        high=np.array([-0.5, 2.0])
         self.mode=mode
         self.action_space = Box(low=low, high=high, dtype=np.float32)
 
@@ -202,7 +202,7 @@ class ROARppoEnvE2E(ROAREnv):
         else:
             throttle=decision/2
             braking=0
-        steering=action[1]/3
+        steering=action[1]/2
             
         # throttle = (action[0] + 4.5) / 2
         # braking = (action[2] - 8.0)
@@ -304,7 +304,7 @@ class ROARppoEnvE2E(ROAREnv):
             return 0
 
         if self.agent.cross_reward > self.prev_cross_reward:
-            reward += (self.agent.cross_reward - self.prev_cross_reward)*self.agent.interval*self.time_to_waypoint_ratio*100
+            reward += (self.agent.cross_reward - self.prev_cross_reward)*self.agent.interval*self.time_to_waypoint_ratio*10
 
         if not (self.agent.bbox_list[(self.agent.int_counter - self.death_line_dis) % len(self.agent.bbox_list)].has_crossed(self.agent.vehicle.transform))[0]:
             # reward -= 200
