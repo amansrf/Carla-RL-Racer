@@ -11,3 +11,6 @@ For quick start documentation, please visit our documentation site: [https://aug
 
 ### Enter the Competition
 Visit [https://augcog.github.io/ROAR/competition_instruction/](https://augcog.github.io/ROAR/competition_instruction/)
+
+
+- Link to data files: https://drive.google.com/drive/folders/1aatQ9vkhZsvfjiQLwG8We81T2GPZ13qN?usp=sharing
