@@ -31,7 +31,7 @@ CONFIG = {
 }
 WALL_MAGNITUDES = [1,2,4,8]
 
-spawn_params["spawn_int_map"] = np.array([39, 91, 140, 224, 312, 442, 556, 730, 782, 898, 1142, 1283, 0])
+spawn_params["spawn_int_map"] = np.array([39, 91, 140, 224, 312, 442, 556, 730, 782, 898, 1142, 1283, 3])
 
 class ROARppoEnvE2E(ROAREnv):
     def __init__(self, params):
@@ -306,7 +306,7 @@ class ROARppoEnvE2E(ROAREnv):
         if self.agent.cross_reward > self.prev_cross_reward:
             reward += (self.agent.cross_reward - self.prev_cross_reward)*self.agent.interval*self.time_to_waypoint_ratio*10
 
-        if not (self.agent.bbox_list[(self.agent.int_counter - self.death_line_dis) % len(self.agent.bbox_list)].has_crossed(self.agent.vehicle.transform))[0]:
+        if not (self.agent.bbox_list[max(self.agent.int_counter - self.death_line_dis,0)].has_crossed(self.agent.vehicle.transform))[0]:
             # reward -= 200
             self.crash_check = True
         elif self.carla_runner.get_num_collision() > 0:
@@ -401,7 +401,7 @@ class ROARppoEnvE2E(ROAREnv):
 
         super(ROARppoEnvE2E, self).reset()
         self.agent.spawn_counter = spawn_params["spawn_int_map"][self.agent_config.spawn_point_id]
-        print(self.agent.spawn_counter)
+        print(self.agent.spawn_counter,'spawn_counter')
         self.steps=0
         self.agent.kwargs["control"] = VehicleControl(throttle=1.0,
                                                             steering=0.0,
