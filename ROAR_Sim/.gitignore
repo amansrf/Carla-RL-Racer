@@ -1,6 +1,7 @@
 data/output
 data/weights/opencv_weights_and_config
 data/*.zip
+data/*.npy
 */__pycache__/
 *__pycache__
 .idea

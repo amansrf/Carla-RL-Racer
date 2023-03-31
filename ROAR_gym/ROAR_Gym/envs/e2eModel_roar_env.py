@@ -31,19 +31,26 @@ CONFIG = {
 }
 WALL_MAGNITUDES = [1,2,4,8]
 
-spawn_params["spawn_int_map"] = np.array([39, 91, 140, 224, 312, 442, 556, 730, 782, 898, 1142, 1283, 0])
+spawn_params["spawn_int_map"] = np.array([39, 91, 140, 224, 312, 442, 556, 730, 782, 898, 1142, 1283, 3])
 
 class ROARppoEnvE2E(ROAREnv):
     def __init__(self, params):
         super().__init__(params)
         # low=np.array([-2.5, -3.0, 1.0])
         # high=np.array([-0.5, 3.0, 3.0])
-        low=np.array([-4.5, -7.0, 8.0])
-        high=np.array([-2.5, 7.0, 9.0])
+        # low=np.array([-4.5, -7.0, 8.0])
+        # high=np.array([-2.5, 7.0, 9.0])
+        # low=np.array([-3.5, -10.0, 8.0,-7.0])
+        # high=np.array([-1.5, 10.0, 10.0,3.0])
+        # low=np.array([-7, -10.0])
+        # high=np.array([-1.5, 10.0])
+        low=np.array([-3.5, -2.0])
+        high=np.array([-0.5, 2.0])
         self.mode=mode
         self.action_space = Box(low=low, high=high, dtype=np.float32)
 
-        self.observation_space = Box(-10, 1, shape=(FRAME_STACK,2, CONFIG["x_res"], CONFIG["y_res"]), dtype=np.float32)
+        # self.observation_space = Box(0, 1, shape=(FRAME_STACK,2, CONFIG["x_res"], CONFIG["y_res"]), dtype=np.float32)
+        self.observation_space = Box(0, 1, shape=(9, CONFIG["x_res"], CONFIG["y_res"]), dtype=np.float32)
         self.prev_speed = 0
         self.prev_cross_reward = 0
         self.crash_check = False
@@ -64,7 +71,7 @@ class ROARppoEnvE2E(ROAREnv):
         self.death_line_dis = 5
         ## used to check if stalled
         self.stopped_counter = 0
-        self.stopped_max_count = 100
+        self.stopped_max_count = 5*self.fps
         # used to track episode highspeed
         self.speed = 0
         self.current_hs = 0
@@ -94,38 +101,112 @@ class ROARppoEnvE2E(ROAREnv):
         print("#########################\n",self.agent.spawn_counter)
 
 
+    # def step(self, action: Any) -> Tuple[Any, float, bool, dict]:
+    #     obs = []
+    #     rewards = []
+    #     self.steps += 1
+
+    #     action = action.reshape((-1))
+    #     # throttle = (action[0] + 0.5) / 2 + 1
+    #     throttle = (action[0] + 2.5) / 2 + 1
+    #     # braking = (action[2] - 1.0) / 2
+    #     braking = (action[2] - 8.0) / 2
+
+    #     # full_throttle_thre = 0.6
+    #     # non_braking_thre = 0.4
+    #     # throttle = min(1, throttle_check / full_throttle_thre)
+    #     # braking = max(0, (braking_check - non_braking_thre) / (1 - non_braking_thre))
+
+    #     # check = (action[0] + 0.5) / 2 + 1
+    #     # if check > 0.5:
+    #     #     throttle = 0.7
+    #     #     braking = 0
+    #     # else:
+    #     #     throttle = 0
+    #     #     braking = 0.8
+
+    #     # steering = action[1]/3
+    #     steering = action[1]/7
+
+    #     if self.deadzone_trigger and abs(steering) < self.deadzone_level:
+    #         steering = 0.0
+
+
+    #     self.agent.kwargs["control"] = VehicleControl(throttle=throttle,
+    #                                                     steering=steering,
+    #                                                     braking=braking)
+
+    #     ob, reward, is_done, info = super(ROARppoEnvE2E, self).step(action)
+
+
+    #     obs.append(ob)
+    #     rewards.append(reward)
+
+    #     self.render()
+    #     self.frame_reward = sum(rewards)
+    #     self.ep_rewards += sum(rewards)
+
+    #     self.speed = self.agent.vehicle.get_speed(self.agent.vehicle)
+    #     if self.speed > self.current_hs:
+    #         self.current_hs = self.speed
+
+    #     if is_done:
+    #         self.wandb_logger()
+    #         self.crash_check = False
+    #         self.update_highscore()
+    #     return np.array(obs), self.frame_reward, self._terminal(), self._get_info()
+    
     def step(self, action: Any) -> Tuple[Any, float, bool, dict]:
         obs = []
         rewards = []
         self.steps += 1
 
         action = action.reshape((-1))
-        # throttle = (action[0] + 0.5) / 2 + 1
-        throttle = (action[0] + 2.5) / 2 + 1
-        # braking = (action[2] - 1.0) / 2
-        braking = (action[2] - 8.0) / 2
+        # decision=action[3]
+        # # if decision<-2: #turning mode
+        # #     throttle = (action[0] + 1.5) / 2 + 1
+        # #     # if action[1]>=5:
+        # #     #     action[1]=5.0
+        # #     # if action[1]<=-5:
+        # #     #     action[1]=-5.0
+        # #     steering = action[1]/10
+        # #     braking=(action[2]-8)/2
+            
+        # # else: #speeding mode
+        # #     throttle = (action[0] + 1.5) / 2 + 1
+        # #     steering = action[1]/80
+        # #     if action[2]<=9:
+        # #         action[2]=9.0
+        # #     braking=(action[2]-9)/4
+        
+        # throttle = (action[0] + 1.5) / 2 + 1
+        # steering = action[1]/10/((decision+7)/10*7+1)
+        # # if action[2]<=8+(decision+7)/10:
+        # #         action[2]=8+(decision+7)/10
+        # # braking=(action[2]-8-(decision+7)/10)/2/((decision+7)/10*2+1)
+        # braking=(action[2]-8)/2
 
-        braking = 0.0 # TODO: This is for troubleshooting SAC. Remove this later
-
-        # full_throttle_thre = 0.6
-        # non_braking_thre = 0.4
-        # throttle = min(1, throttle_check / full_throttle_thre)
-        # braking = max(0, (braking_check - non_braking_thre) / (1 - non_braking_thre))
-
-        # check = (action[0] + 0.5) / 2 + 1
-        # if check > 0.5:
-        #     throttle = 0.7
-        #     braking = 0
+        # decision=action[0]+6
+        # if decision<0:
+        #     throttle=0
+        #     braking=abs(decision)
         # else:
-        #     throttle = 0
-        #     braking = 0.8
+        #     throttle=decision/4.5
+        #     braking=0
+        # steering=action[1]/10
 
-        # steering = action[1]/3
-        steering = action[1]/7
-
-        if self.deadzone_trigger and abs(steering) < self.deadzone_level:
-            steering = 0.0
-
+        decision=action[0]+2.5
+        if decision<0:
+            throttle=0
+            braking=abs(decision)
+        else:
+            throttle=decision/2
+            braking=0
+        steering=action[1]/2
+            
+        # throttle = (action[0] + 4.5) / 2
+        # braking = (action[2] - 8.0)
+        # steering = action[1]/7
 
         self.agent.kwargs["control"] = VehicleControl(throttle=throttle,
                                                         steering=steering,
@@ -225,7 +306,7 @@ class ROARppoEnvE2E(ROAREnv):
         if self.agent.cross_reward > self.prev_cross_reward:
             reward += (self.agent.cross_reward - self.prev_cross_reward)*self.agent.interval*self.time_to_waypoint_ratio*10
 
-        if not (self.agent.bbox_list[(self.agent.int_counter - self.death_line_dis) % len(self.agent.bbox_list)].has_crossed(self.agent.vehicle.transform))[0]:
+        if not (self.agent.bbox_list[max(self.agent.int_counter - self.death_line_dis,0)].has_crossed(self.agent.vehicle.transform))[0]:
             # reward -= 200
             self.crash_check = True
         elif self.carla_runner.get_num_collision() > 0:
@@ -256,48 +337,22 @@ class ROARppoEnvE2E(ROAREnv):
                 # print(index_from,len(self.agent.bbox_list),index_from+10-len(self.agent.bbox_list))
                 next_bbox_list=self.agent.bbox_list[index_from:]+self.agent.bbox_list[:index_from+10-len(self.agent.bbox_list)]
             assert(len(next_bbox_list)==10)
-            map_list,overlap = self.agent.occupancy_map.get_map_baseline(transform_list=self.agent.vt_queue,
+            map_list,overlap = self.agent.occupancy_map.get_map_9(transform_list=self.agent.vt_queue,
                                                     view_size=(CONFIG["x_res"], CONFIG["y_res"]),
                                                     boundary_size=(CONFIG["x_res"]//2, CONFIG["y_res"]//2),
                                                     bbox_list=self.agent.frame_queue,
                                                                  next_bbox_list=next_bbox_list
                                                     )
             self.overlap=overlap
-            # data = cv2.resize(occu_map, (CONFIG["x_res"], CONFIG["y_res"]), interpolation=cv2.INTER_AREA)
-            #cv2.imshow("Occupancy Grid Map", cv2.resize(np.float32(data), dsize=(500, 500)))
-
-            # data_view=np.sum(data,axis=2)
-            # wall=self.agent.occupancy_map.get_wall(transform=self.agent.vt_queue[-1],
-            #                                         view_size=(CONFIG["x_res"], CONFIG["y_res"]))
-            # wall2=self.agent.occupancy_map.get_wall(transform=self.agent.vt_queue[-1],
-            #                                         view_size=(CONFIG["x_res"]*2, CONFIG["y_res"]*2))
-            
-            # wall2=skimage.measure.block_reduce(wall2, (2,2), np.max)
-            # wall4=self.agent.occupancy_map.get_wall(transform=self.agent.vt_queue[-1],
-            #                                         view_size=(CONFIG["x_res"]*4, CONFIG["y_res"]*4))
-            
-            # wall4=skimage.measure.block_reduce(wall4, (4,4), np.max)
-            # wall8=self.agent.occupancy_map.get_wall(transform=self.agent.vt_queue[-1],
-            #                                         view_size=(CONFIG["x_res"]*8, CONFIG["y_res"]*8))
-            
-            # wall8=skimage.measure.block_reduce(wall8, (8,8), np.max)
-            # print(wall.shape,wall2.shape,wall4.shape,wall8.shape)
-            # map_list4,_ = self.agent.occupancy_map.get_map_baseline(transform_list=self.agent.vt_queue,
-            #                                         view_size=(CONFIG["x_res"]*4, CONFIG["y_res"]*4),
-            #                                         bbox_list=self.agent.frame_queue,
-            #                                         next_bbox_list=next_bbox_list
-            #                                         )
-            # map_list4=skimage.measure.block_reduce(map_list4, (1,1,4,4), np.max)
-            map_list=map_list[:,-1:]
-            # wall_list=np.array([[wall],[wall2],[wall4],[wall8]])
+            # map_list=map_list[:,-1:]
             wall_list=self.agent.occupancy_map.get_wall_series(transform=self.agent.vt_queue[-1],magnitude=WALL_MAGNITUDES,
                                                     view_size=(CONFIG["x_res"], CONFIG["y_res"]))
             # print([x.shape for x in wall_list])
 
-            wall_list=np.array([[skimage.measure.block_reduce(wall_list[i], (WALL_MAGNITUDES[i],WALL_MAGNITUDES[i]), np.max)] for i in range(len(wall_list))])
+            wall_list=np.array([skimage.measure.block_reduce(wall_list[i], (WALL_MAGNITUDES[i],WALL_MAGNITUDES[i]), np.max) for i in range(len(wall_list))])
             # print(map_list.shape,wall_list.shape)
-            map_list=np.hstack((map_list,wall_list))
-            cv2.imshow("data", np.hstack(np.hstack(map_list))) # uncomment to show occu map
+            map_list=np.vstack((map_list,wall_list))
+            cv2.imshow("data", np.hstack(map_list)) # uncomment to show occu map
             cv2.waitKey(1)
             #print(mapList.shape,'------------------------------------------------------------------------------------------------------------------------')
             return map_list
@@ -346,7 +401,7 @@ class ROARppoEnvE2E(ROAREnv):
 
         super(ROARppoEnvE2E, self).reset()
         self.agent.spawn_counter = spawn_params["spawn_int_map"][self.agent_config.spawn_point_id]
-        print(self.agent.spawn_counter)
+        print(self.agent.spawn_counter,'spawn_counter')
         self.steps=0
         self.agent.kwargs["control"] = VehicleControl(throttle=1.0,
                                                             steering=0.0,

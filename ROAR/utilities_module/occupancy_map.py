@@ -484,6 +484,75 @@ class OccupancyGridMap(Module):
          
 
         return np.array(ret), overlap
+    
+    def get_map_9(self,
+                transform_list,
+                view_size = (100, 100),
+                boundary_size = (100, 100),
+                         bbox_list=None,
+                         next_bbox_list=None, next_wps_list = None) -> np.ndarray:
+        """
+        Return global occu map if transform is None
+        Otherwise, return ego centric map
+
+        Args:
+            arbitrary_point_value:
+            arbitrary_locations:
+            vehicle_value:
+            boundary_size:
+            transform: Current vehicle Transform
+            view_size: Size of the view window
+
+        Returns:
+            np.ndarray of float32
+        """
+        boundary_size=(view_size[0]*2,view_size[1]*2)
+        num_frames=len(transform_list)
+        map_to_view = self._map
+        yaw = -transform_list[-1].rotation.yaw
+        occu_cord = self.location_to_occu_cord(location=transform_list[-1].location)
+        x, y = occu_cord[0]
+        first_cut_size = (view_size[0] + boundary_size[0], view_size[1] + boundary_size[1])
+        map_to_view = map_to_view[y - first_cut_size[1] // 2+self.pad: y + first_cut_size[1] // 2+self.pad,
+                  x - first_cut_size[0] // 2+self.pad: x + first_cut_size[0] // 2+self.pad].copy()
+
+        map_list=[]
+        r_map = np.zeros_like(map_to_view)
+        for bbox in next_bbox_list:
+            coord = [self.location_to_occu_cord(location=location)[0] for location in bbox.get_visualize_locs()]
+            coord = np.array(coord)
+            coord += [(first_cut_size[0] // 2) - x, (first_cut_size[1] // 2) - y]
+            coord = coord.swapaxes(0, 1)
+            coord[[0, 1]] = coord[[1, 0]]
+            if any(coord[0] <= 0) or any(coord[1]<=0):
+                continue
+            try:
+                r_map[tuple(coord)] += 0.5
+            except:
+                pass
+        map_list.append(r_map)
+        overlap=False
+        for i in range(num_frames):
+            v_map = np.zeros_like(map_to_view)
+            vehicle_x,vehicle_y=self.location_to_occu_cord(location=transform_list[i].location)[0]
+            vehicle_x += (first_cut_size[0] // 2)-x
+            vehicle_y += (first_cut_size[1] // 2)-y
+            size=1
+            v_map[vehicle_y-size:vehicle_y+1+size, vehicle_x-size:vehicle_x+1+size] = 0.5
+            vehicle_locations = map_to_view[vehicle_y, vehicle_x]
+            if np.any(vehicle_locations == 1):
+                overlap = True
+            map_list.append(v_map)
+            
+        for i in range(len(map_list)):
+            image = Image.fromarray(map_list[i])
+            image = image.rotate(yaw)
+            map_list[i] = np.asarray(image)
+            x_extra, y_extra = boundary_size[0] // 2, boundary_size[1] // 2
+            map_list[i] = map_list[i][y_extra-view_size[1] // 4 : map_list[i].shape[1] - y_extra-view_size[1] // 4,
+                            x_extra: map_list[i].shape[0] - x_extra]    
+
+        return np.array(map_list), overlap
 
     def cropped_occu_to_world(self,
                               cropped_occu_coord: np.ndarray,
