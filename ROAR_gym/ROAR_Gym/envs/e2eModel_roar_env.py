@@ -31,8 +31,6 @@ CONFIG = {
 }
 WALL_MAGNITUDES = [1,2,4,8]
 
-spawn_params["spawn_int_map"] = np.array([39, 91, 140, 224, 312, 442, 556, 730, 782, 898, 1142, 1283, 3])
-
 class ROARppoEnvE2E(ROAREnv):
     def __init__(self, params):
         super().__init__(params)
@@ -44,7 +42,7 @@ class ROARppoEnvE2E(ROAREnv):
         # high=np.array([-1.5, 10.0, 10.0,3.0])
         # low=np.array([-7, -10.0])
         # high=np.array([-1.5, 10.0])
-        low=np.array([-3.5, -2.0])
+        low=np.array([-2.5, -2.0])
         high=np.array([-0.5, 2.0])
         self.mode=mode
         self.action_space = Box(low=low, high=high, dtype=np.float32)
@@ -88,12 +86,15 @@ class ROARppoEnvE2E(ROAREnv):
 
         # Spawn initializations
         # TODO: This is a hacky fix because the reset function seems to be called on init as well.
-        if spawn_params["dynamic_type"] == "linear forward":
-            self.agent_config.spawn_point_id = spawn_params["init_spawn_pt"] - 1
-        elif spawn_params["dynamic_type"] == "linear backward":
-            self.agent_config.spawn_point_id = spawn_params["init_spawn_pt"] + 1
-        elif spawn_params["dynamic_type"] == "uniform random":
-            self.agent_config.spawn_point_id = np.random.randint(low=1, high=12)
+        if spawn_params["dynamic_spawn"] :
+            if spawn_params["dynamic_type"] == "linear forward":
+                self.agent_config.spawn_point_id = spawn_params["init_spawn_pt"] - 1
+            elif spawn_params["dynamic_type"] == "linear backward":
+                self.agent_config.spawn_point_id = spawn_params["init_spawn_pt"] + 1
+            elif spawn_params["dynamic_type"] == "uniform random":
+                self.agent_config.spawn_point_id = np.random.randint(low=1, high=12)
+            else:
+                self.agent_config.spawn_point_id = spawn_params["init_spawn_pt"]
         else:
             self.agent_config.spawn_point_id = spawn_params["init_spawn_pt"]
 
@@ -195,12 +196,12 @@ class ROARppoEnvE2E(ROAREnv):
         #     braking=0
         # steering=action[1]/10
 
-        decision=action[0]+2.5
+        decision=action[0]+1.5
         if decision<0:
             throttle=0
             braking=abs(decision)
         else:
-            throttle=decision/2
+            throttle=decision
             braking=0
         steering=action[1]/2
             
@@ -262,7 +263,7 @@ class ROARppoEnvE2E(ROAREnv):
 
         if self.carla_runner.world is not None:
             current_time = self.carla_runner.world.hud.simulation_time
-            if self.agent.int_counter * self.agent.interval < 27180:
+            if self.agent.int_counter * self.agent.interval < 1000000:
                 self.sim_lap_time = 400
             else:
                 self.sim_lap_time = current_time - self.last_sim_time
@@ -304,19 +305,24 @@ class ROARppoEnvE2E(ROAREnv):
             return 0
 
         if self.agent.cross_reward > self.prev_cross_reward:
-            reward += (self.agent.cross_reward - self.prev_cross_reward)*self.agent.interval*self.time_to_waypoint_ratio*10
+            reward += (self.agent.cross_reward - self.prev_cross_reward)*self.agent.interval*self.time_to_waypoint_ratio
 
-        if not (self.agent.bbox_list[max(self.agent.int_counter - self.death_line_dis,0)].has_crossed(self.agent.vehicle.transform))[0]:
-            # reward -= 200
+        if not (self.agent.bbox_list[max(self.agent.int_counter - self.death_line_dis,1)].has_crossed(self.agent.vehicle.transform))[0]:
+            reward -= 5000
+            # for i in range(20):
+            #     print((self.agent.bbox_list[i].has_crossed(self.agent.vehicle.transform))[0])
+            print('drive back')
             self.crash_check = True
         elif self.carla_runner.get_num_collision() > 0:
-            # reward -= 200
+            reward -= 5000
+            print(f'collision number: {self.carla_runner.get_num_collision()}')
             self.crash_check = True
 
         if self.agent.int_counter > 1 and self.agent.vehicle.get_speed(self.agent.vehicle) < 1:
             self.stopped_counter += 1
             if self.stopped_counter >= self.stopped_max_count:
-                # reward -= 200
+                reward -= 5000
+                print('stopped')
                 self.crash_check = True
 
         
@@ -352,7 +358,18 @@ class ROARppoEnvE2E(ROAREnv):
             wall_list=np.array([skimage.measure.block_reduce(wall_list[i], (WALL_MAGNITUDES[i],WALL_MAGNITUDES[i]), np.max) for i in range(len(wall_list))])
             # print(map_list.shape,wall_list.shape)
             map_list=np.vstack((map_list,wall_list))
-            cv2.imshow("data", np.hstack(map_list)) # uncomment to show occu map
+            image=np.hstack(map_list)
+            # Get the image dimensions
+            height, width = image.shape[:2]
+
+            # Double the size of the image
+            new_height = height * 6
+            new_width = width * 6
+
+            # Resize the image using cv2.resize()
+            resized_img = cv2.resize(image, (new_width, new_height))
+
+            cv2.imshow("data", resized_img) # uncomment to show occu map
             cv2.waitKey(1)
             #print(mapList.shape,'------------------------------------------------------------------------------------------------------------------------')
             return map_list

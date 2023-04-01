@@ -106,7 +106,7 @@ def wandb_run_init(wandb_hp_config, load=False, requested_run_id=None, use_rando
 
     if load is True:
         # Load run_id from the config file
-        run_id = wandb_config["run_id"]
+        run_id = misc_params["run_name"]
         assert run_id != "", "Run ID not set even though previous run exists"
     else:
         # Create wandb run id
@@ -116,13 +116,13 @@ def wandb_run_init(wandb_hp_config, load=False, requested_run_id=None, use_rando
             assert use_random_id is True, "RUN ID NOT SET FOR NEW RUN"
             run_id = wandb.util.generate_id()
 
-        # Store run_id to wandb_configuration file
-        wandb_config["run_id"] = run_id
-        wandb_config = json_read_write(
-            file=WANDB_CONFIG_DIR,
-            load_var=wandb_config,
-            mode='w',
-        )
+    # Store run_id to wandb_configuration file
+    wandb_config["run_id"] = run_id
+    wandb_config = json_read_write(
+        file=WANDB_CONFIG_DIR,
+        load_var=wandb_config,
+        mode='w',
+    )
 
     # Create a wandb run variable
     wandb.tensorboard.patch(
@@ -133,7 +133,7 @@ def wandb_run_init(wandb_hp_config, load=False, requested_run_id=None, use_rando
         project=wandb_config["project_name"],
         entity=wandb_config["entity"],  # Change to whoever wants to log the data
         config=wandb_hp_config,
-        # sync_tensorboard=True,  # auto-upload sb3's tensorboard metrics
+        # sync_tensorboard=False,  # auto-upload sb3's tensorboard metrics
         save_code=True,  # Allows us to check diff of code between runs
         resume="allow",
         # magic=True,
@@ -235,7 +235,6 @@ def main(pass_num):
 
     print("Model Loaded Successfully")
     # Defining Callback Functions
-
     logging_callback = LoggingCallback(model=model)
 
     checkpoint_callback = CheckpointCallback(

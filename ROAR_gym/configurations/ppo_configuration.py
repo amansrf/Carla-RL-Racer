@@ -10,15 +10,31 @@ sys.path.append(Path(os.getcwd()).parent.as_posix())
 misc_params = {
   "env_name": 'roar-e2e-ppo-v0',
   "run_fps": 32,  # TODO Link to the environment RUN_FPS
-  "model_directory": Path("./output/PPOe2e_major_new_map_53_trial"),
-  "run_name": "major_new_map_53_trial",
+  "model_directory": Path("./output/PPOe2e_major_new_map_56_trial"),
+  "run_name": "major_new_map_56_trial",
   "total_timesteps": int(1e6),#1e6
 }
 
 spawn_params = {
-  "num_spawn_pts": 13,  # Last one is 12s
+  "num_spawn_pts": 12,  # Last one is 12 but tianlun did not fixed 12
   "init_spawn_pt": 0,
   "dynamic_spawn": True,  # True if start at different spawn locations on reset
+  "spawn_position" : {
+                      0 : (2542.800048828125,111.44281768798828,4069.599853515625),
+                      1 : (1350.7999267578125,61.94282531738281,4260.10009765625),
+                      2 : (1328.2999267578125,68.84282684326172,3553.099853515625),
+                      3 : (2421.800048828125,115.44281768798828,3741.599853515625),
+                      4 : (3592.799560546875,192.74282836914062,3660.099853515625),
+                      5 : (3043.300048828125,345.4428405761719,2867.099853515625),
+                      6 : (3527.799560546875,417.2428283691406,2609.099853515625),
+                      7 : (4836.2998046875,505.0428161621094,2955.599853515625),
+                      8 : (5272.2998046875,500.2428283691406,3083.599853515625),
+                      9 : (5614.7998046875,422.7428283691406,4085.599853515625),
+                      10: (3695.799560546875,145.84280395507812,4926.10009765625),
+                      11: (3090.300048828125,116.142822265625,4852.60009765625),
+                      12: (2596.300048828125,103.54281616210938,4359.10009765625)
+                    },
+
 
   # Spawn Guide:
   # 1 = Roundabout
@@ -32,11 +48,10 @@ spawn_params = {
   #   3. "linear backward" - After reset decrement spawn point by one. Loops back to num_spawn_pts after init reached
   #   4. "custom spawn pts" - Provide a custom list of spawn points.
   "dynamic_type": "uniform random",
-  "custom_list": [0,1, 2, 3, 4, 5, 6, 7, 8, 9, 10],  # List of custom spawn pts
-
-                                                                                                                                                                                                                      
+  "custom_list": [0,1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],  # List of custom spawn pts                                                                                                                                                                                                                      
   "spawn_pt_iterator": 1,  # DO NOT TOUCH THIS! Used Internally!
-  "spawn_int_map": [39, 91, 140, 224, 312, 442, 556, 730, 782, 898, 1142, 1283, 3],
+  # "spawn_int_map": [39, 91, 140, 224, 312, 442, 556, 730, 782, 898, 1142, 1283, 3],
+  "spawn_int_map": [70, 317, 467, 727, 993, 1269, 1512, 1906, 2024, 2298, 2923, 3179, 4],
 }
 
 wandb_saves = {

@@ -16,11 +16,18 @@ import cv2
 from typing import Optional
 import scipy.stats
 from collections import deque
+from scipy.interpolate import interp1d
 
 class RLe2ePPOAgent(Agent):
     def __init__(self, vehicle: Vehicle, agent_settings: AgentConfig, frame_stack=4, **kwargs):
         super().__init__(vehicle, agent_settings, **kwargs)
         self.mission_planner = WaypointFollowingMissionPlanner(agent=self)
+        # occ_file_path = Path(agent_settings.occu_map_path)
+        # self.occupancy_map = OccupancyGridMap(agent=self, threaded=True)
+        # self.occupancy_map.load_from_file(occ_file_path)
+        # self.plan_lst = list(self.mission_planner.produce_single_lap_mission_plan())
+        # return 
+
 
         # the part about visualization
         self.flatten=True
@@ -30,11 +37,9 @@ class RLe2ePPOAgent(Agent):
         self.occupancy_map.load_from_file(occ_file_path)
         occ_height_file_path = Path(agent_settings.occu_height_map_path)
         self.occupancy_map.load_height_from_file(occ_height_file_path)
-
         self.plan_lst = list(self.mission_planner.produce_single_lap_mission_plan())
-
         self.kwargs = kwargs
-        self.interval = self.kwargs.get('interval', 20)
+        self.interval = self.kwargs.get('interval', 100)
         self.look_back = self.kwargs.get('look_back', 5)
         self.look_back_max = self.kwargs.get('look_back_max', 10)
         self.thres = self.kwargs.get('thres', 1e-3)
@@ -56,13 +61,22 @@ class RLe2ePPOAgent(Agent):
         self.frame_queue = deque([None, None, None], maxlen=frame_stack)
         self.vt_queue = deque([None, None, None], maxlen=frame_stack)
         self._get_all_bbox()
+
+        # print(len(self.bbox_list))
+        # f = open("./tempout.txt", 'w')
+        # for line in self.bbox_list:
+        #     f.write(f"{line.x2} {line.z2}\n")
+        # f.close()
+        # exit()
+
         for _ in range(4):
             self.bbox_step()
         self.finish_loop=False
 
     def reset(self,vehicle: Vehicle):
         self.vehicle=vehicle
-        self.int_counter = self.spawn_counter
+        self.int_counter = self.spawn_counter #change back
+        print(f'spawn index: {self.int_counter}')
         self.cross_reward = 0
         self.counter = 0
         self.finished = False
@@ -110,6 +124,7 @@ class RLe2ePPOAgent(Agent):
                 self.cross_reward+=crossed
                 currentframe_crossed.append(self.bbox_list[self.int_counter%len(self.bbox_list)])
                 self.int_counter += 1
+                print(f'crossed{self.int_counter}')
             else:
                 break
         if update_queue:
@@ -122,6 +137,7 @@ class RLe2ePPOAgent(Agent):
                 self.frame_queue.append(None)
             # add vehicle tranform
             if len(self.vt_queue) < 4:
+                self.logger.info(f"{self.vehicle.transform}")
                 self.vt_queue.append(self.vehicle.transform)
             else:
                 self.vt_queue.popleft()

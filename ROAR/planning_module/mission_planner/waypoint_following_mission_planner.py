@@ -8,6 +8,7 @@ from ROAR.utilities_module.data_structures_models import Transform, Location, Ro
 from collections import deque
 from ROAR.agent_module.agent import Agent
 import numpy as np
+from scipy.interpolate import interp1d
 
 
 class WaypointFollowingMissionPlanner(MissionPlanner):
@@ -53,13 +54,91 @@ class WaypointFollowingMissionPlanner(MissionPlanner):
 
         return mission_plan
 
+    def interpolate_waypoints(self, dense_list, thres = 0.05):
+        dist = 0
+        waypoints = []
+        pre_pt = dense_list[0]
+        cur_pt = None
+        waypoints.append(pre_pt)
+        for i in range(1, len(dense_list)):
+            cur_pt = dense_list[i]
+            dist = np.linalg.norm (np.array(pre_pt) - np.array(cur_pt))
+            if dist >= 0.5:
+                waypoints.append(cur_pt)
+                pre_pt = cur_pt
+        waypoints = np.array(waypoints)
+        wptsx = waypoints[:,0]  
+        wptsy = waypoints[:,1]  
+        wptsz = waypoints[:,2]  
+        index = np.arange(0, len(waypoints)).T
+        fx = interp1d(index, wptsx, kind='cubic')
+        fy = interp1d(index, wptsy, kind='cubic')
+        fz = interp1d(index, wptsz, kind='cubic')
+        new_waypoints = None
+        for i in range(1, len(waypoints)):
+            pt1 = waypoints[i - 1]
+            pt2 = waypoints[i]
+            dist = np.linalg.norm (pt1 - pt2)
+            index = np.arange(i - 1, i, thres / (dist + 0))
+            intrpx = fx(index)
+            intrpy = fy(index)
+            intrpz = fz(index)
+            new_points = np.stack((intrpx, intrpy, intrpz), axis=0).T
+            # self.waypoints_list_check(new_points)
+            if new_waypoints is None:
+                new_waypoints = new_points
+            else:
+                new_waypoints = np.vstack((new_waypoints, new_points))
+
+
+        remove_index = []
+        for i in range(1, len(new_waypoints)):
+            pt1 = new_waypoints[i-1]
+            pt2 = new_waypoints[i]
+            dist = np.linalg.norm (pt1 - pt2)
+            if dist <= 1e-3:
+                remove_index.append(i)
+        return np.delete(new_waypoints, remove_index, 0)
+    
+        dist = -1
+        previous_pt = waypoints[0]
+        output_list = []
+        output_list.append(previous_pt)
+        for i in range(1, len(waypoints)):
+            current_pt = waypoints[i]
+            dist = np.linalg.norm (current_pt - previous_pt)
+            if dist >= dis_thres:
+                output_list.append(current_pt)
+                previous_pt = current_pt
+                dist = -1
+        return output_list
+    
+    def waypoints_list_check(self, waypoints):
+        max_dist =  -1
+        min_dist = 10000
+        dist_list = []
+        for i in range(1, len(waypoints)):
+            pt1 = waypoints[i - 1]
+            pt2 = waypoints[i]
+            dist = np.linalg.norm (np.array(pt1) - np.array(pt2))
+            dist_list.append(dist)
+            if dist >= max_dist:
+                max_dist = dist
+            if dist <= min_dist:
+                min_dist = dist
+            
+        print(min_dist, max_dist, len(waypoints))
+        return dist_list
+
     def produce_single_lap_mission_plan(self):
         raw_path: List[List[float]] = self._read_data_file()
+        raw_path = self.interpolate_waypoints(np.array(raw_path))
+        # self.waypoints_list_check(waypoints=raw_path)
         mission_plan = deque(maxlen=len(raw_path))
         for coord in raw_path:
             if len(coord) == 3 or len(coord) == 6:
                 mission_plan.append(self._raw_coord_to_transform(coord))
-        self.logger.debug(f"Computed Mission path of length [{len(mission_plan)}]")
+        self.logger.info(f"Computed Mission path of length [{len(mission_plan)}]")
         return mission_plan
 
     def _read_data_file(self) -> List[List[float]]:
