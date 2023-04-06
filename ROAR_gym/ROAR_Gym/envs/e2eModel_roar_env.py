@@ -44,7 +44,7 @@ class ROARppoEnvE2E(ROAREnv):
         # high=np.array([-1.5, 10.0, 10.0,3.0])
         # low=np.array([-7, -10.0])
         # high=np.array([-1.5, 10.0])
-        low=np.array([-3.5, -2.0])
+        low=np.array([-1.5, -2.0])
         high=np.array([-0.5, 2.0])
         self.mode=mode
         self.action_space = Box(low=low, high=high, dtype=np.float32)
@@ -71,7 +71,7 @@ class ROARppoEnvE2E(ROAREnv):
         self.death_line_dis = 5
         ## used to check if stalled
         self.stopped_counter = 0
-        self.stopped_max_count = 5*self.fps
+        self.stopped_max_count = 1*self.fps
         # used to track episode highspeed
         self.speed = 0
         self.current_hs = 0
@@ -195,12 +195,12 @@ class ROARppoEnvE2E(ROAREnv):
         #     braking=0
         # steering=action[1]/10
 
-        decision=action[0]+2.5
+        decision=action[0]+1
         if decision<0:
             throttle=0
-            braking=abs(decision)
+            braking=abs(decision)*2
         else:
-            throttle=decision/2
+            throttle=decision*2
             braking=0
         steering=action[1]/2
             
@@ -307,10 +307,10 @@ class ROARppoEnvE2E(ROAREnv):
             reward += (self.agent.cross_reward - self.prev_cross_reward)*self.agent.interval*self.time_to_waypoint_ratio*10
 
         if not (self.agent.bbox_list[max(self.agent.int_counter - self.death_line_dis,0)].has_crossed(self.agent.vehicle.transform))[0]:
-            # reward -= 200
+            reward -= 100
             self.crash_check = True
         elif self.carla_runner.get_num_collision() > 0:
-            # reward -= 200
+            reward -= 100
             self.crash_check = True
 
         if self.agent.int_counter > 1 and self.agent.vehicle.get_speed(self.agent.vehicle) < 1:
@@ -318,6 +318,8 @@ class ROARppoEnvE2E(ROAREnv):
             if self.stopped_counter >= self.stopped_max_count:
                 # reward -= 200
                 self.crash_check = True
+        else:
+            self.stopped_counter = 0
 
         
 
@@ -410,6 +412,7 @@ class ROARppoEnvE2E(ROAREnv):
             print('step '+str(self.steps))
             super(ROARppoEnvE2E, self).step(None)
             self.steps+=1
+            self.stopped_counter = 0
         # self.crash_step=0
         # self.reward_step=0
         return self._get_obs()

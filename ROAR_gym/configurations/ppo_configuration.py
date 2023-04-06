@@ -10,8 +10,8 @@ sys.path.append(Path(os.getcwd()).parent.as_posix())
 misc_params = {
   "env_name": 'roar-e2e-ppo-v0',
   "run_fps": 32,  # TODO Link to the environment RUN_FPS
-  "model_directory": Path("./output/PPOe2e_major_new_map_53_trial"),
-  "run_name": "major_new_map_53_trial",
+  "model_directory": Path("./output/SACe2e_major_20230405"),
+  "run_name": "SACe2e_major_20230405",
   "total_timesteps": int(1e6),#1e6
 }
 
@@ -68,10 +68,12 @@ PPO_params = dict(
 )
 
 SAC_params = dict(
-  learning_rate = 2e-4,
-  batch_size=64,
+  learning_rate = 1e-4,
+  batch_size=256,
+  # n_steps = misc_params["run_fps"],#1024
   ent_coef="auto",
   target_entropy="auto",
+  gamma=0.99,
   use_sde=True,
   sde_sample_freq=5*misc_params["run_fps"],
   buffer_size=256_000, #default 1_000_000,
