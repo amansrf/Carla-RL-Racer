@@ -29,7 +29,7 @@ CONFIG = {
     "x_res": 24,
     "y_res": 24
 }
-WALL_MAGNITUDES = [1,2,4,8]
+WALL_MAGNITUDES = [1,8]
 
 class ROARppoEnvE2E(ROAREnv):
     def __init__(self, params):
@@ -42,13 +42,15 @@ class ROARppoEnvE2E(ROAREnv):
         # high=np.array([-1.5, 10.0, 10.0,3.0])
         # low=np.array([-7, -10.0])
         # high=np.array([-1.5, 10.0])
-        low=np.array([-2.5, -2.0])
+        low=np.array([-1.5, -2.0])
         high=np.array([-0.5, 2.0])
+        # low=np.array([-1, -2.0])
+        # high=np.array([1, 2.0])
         self.mode=mode
         self.action_space = Box(low=low, high=high, dtype=np.float32)
 
         # self.observation_space = Box(0, 1, shape=(FRAME_STACK,2, CONFIG["x_res"], CONFIG["y_res"]), dtype=np.float32)
-        self.observation_space = Box(0, 1, shape=(9, CONFIG["x_res"], CONFIG["y_res"]), dtype=np.float32)
+        self.observation_space = Box(0, 1, shape=(4, CONFIG["x_res"], CONFIG["y_res"]), dtype=np.float32)
         self.prev_speed = 0
         self.prev_cross_reward = 0
         self.crash_check = False
@@ -66,10 +68,10 @@ class ROARppoEnvE2E(ROAREnv):
         self.his_score=[]
         self.time_to_waypoint_ratio = 5.0 #0.75
         self.fps = 32
-        self.death_line_dis = 5
+        self.death_line_dis = 2
         ## used to check if stalled
         self.stopped_counter = 0
-        self.stopped_max_count = 5*self.fps
+        self.stopped_max_count =1
         # used to track episode highspeed
         self.speed = 0
         self.current_hs = 0
@@ -83,6 +85,7 @@ class ROARppoEnvE2E(ROAREnv):
         self.deadzone_trigger = True
         self.deadzone_level = 0.001
         self.overlap = False
+        self.last_num_collision=0
 
         # Spawn initializations
         # TODO: This is a hacky fix because the reset function seems to be called on init as well.
@@ -196,14 +199,23 @@ class ROARppoEnvE2E(ROAREnv):
         #     braking=0
         # steering=action[1]/10
 
-        decision=action[0]+1.5
+        decision=action[0]+1
         if decision<0:
             throttle=0
-            braking=abs(decision)
+            braking=abs(decision)*2
         else:
-            throttle=decision
+            throttle=decision*2
             braking=0
         steering=action[1]/2
+
+        # decision=action[0]
+        # if decision<0:
+        #     throttle=0
+        #     braking=abs(decision)
+        # else:
+        #     throttle=decision
+        #     braking=0
+        # steering=action[1]/2
             
         # throttle = (action[0] + 4.5) / 2
         # braking = (action[2] - 8.0)
@@ -230,7 +242,7 @@ class ROARppoEnvE2E(ROAREnv):
 
         if is_done:
             self.wandb_logger()
-            self.crash_check = False
+            # self.crash_check = False
             self.update_highscore()
         return np.array(obs), self.frame_reward, self._terminal(), self._get_info()
 
@@ -277,21 +289,23 @@ class ROARppoEnvE2E(ROAREnv):
         if self.stopped_counter >= self.stopped_max_count:
             print("what")
             return True
-        if self.carla_runner.get_num_collision() > self.max_collision_allowed:
-            print("man")
-            return True
-        elif self.crash_check: #elif self.overlap:
+        # if self.carla_runner.get_num_collision() > self.max_collision_allowed:
+        #     print("man")
+        #     return True
+        # if self.carla_runner.world.collision_sensor.history[-1][-1]>=10000:
+        #     print('crash')
+        #     return True
+        if self.crash_check: #elif self.overlap:
             print("pls")
             return True
         # elif self.overlap:
         #     print("overlap--------------------------------------------------------------")
         #     return True
-        elif self.agent.finish_loop:
+        if self.agent.finish_loop:
             print("halp")
             self.complete_loop=True
             return True
-        else:
-            return False
+        return False
 
     def get_reward(self) -> float:
         reward = 0
@@ -307,23 +321,31 @@ class ROARppoEnvE2E(ROAREnv):
         if self.agent.cross_reward > self.prev_cross_reward:
             reward += (self.agent.cross_reward - self.prev_cross_reward)*self.agent.interval*self.time_to_waypoint_ratio
 
-        if not (self.agent.bbox_list[max(self.agent.int_counter - self.death_line_dis,1)].has_crossed(self.agent.vehicle.transform))[0]:
-            reward -= 5000
-            # for i in range(20):
-            #     print((self.agent.bbox_list[i].has_crossed(self.agent.vehicle.transform))[0])
-            print('drive back')
-            self.crash_check = True
-        elif self.carla_runner.get_num_collision() > 0:
-            reward -= 5000
-            print(f'collision number: {self.carla_runner.get_num_collision()}')
-            self.crash_check = True
-
-        if self.agent.int_counter > 1 and self.agent.vehicle.get_speed(self.agent.vehicle) < 1:
+        # if not (self.agent.bbox_list[max(self.agent.int_counter - self.death_line_dis,1)].has_crossed(self.agent.vehicle.transform))[0]:
+        #     reward -= 100
+        #     # for i in range(20):
+        #     #     print((self.agent.bbox_list[i].has_crossed(self.agent.vehicle.transform))[0])
+        #     print('drive back')
+        #     self.crash_check = True
+        if self.carla_runner.get_num_collision() > self.last_num_collision:
+            reward -= self.carla_runner.world.collision_sensor.history[-1][-1]/5000
+            self.last_num_collision=self.carla_runner.get_num_collision()
+            print(f'collision number: {self.carla_runner.get_num_collision()}------------------{self.carla_runner.world.collision_sensor.history[-1][-1]}')
+            # if self.carla_runner.world.collision_sensor.history[-1][-1]>10000:
+            #     reward -= 100
+            #     self.crash_check = True
+        # print(f'{self.carla_runner.get_num_collision()}')
+        # if self.agent.int_counter > 1 and self.agent.vehicle.get_speed(self.agent.vehicle) < 2:
+        print(self.agent.bbox_list[self.agent.int_counter%len(self.agent.bbox_list)].get_directional_velocity(self.agent.vehicle.velocity.x,self.agent.vehicle.velocity.y),'----------------------------------')
+        # print(self.agent.vehicle.velocity.x,self.agent.vehicle.velocity.y)
+        if self.steps>100 and self.agent.bbox_list[self.agent.int_counter%len(self.agent.bbox_list)].get_directional_velocity(self.agent.vehicle.velocity.x,self.agent.vehicle.velocity.y) < 0.1:
             self.stopped_counter += 1
             if self.stopped_counter >= self.stopped_max_count:
-                reward -= 5000
+                reward -= 100
                 print('stopped')
                 self.crash_check = True
+        else:
+            self.stopped_counter =0
 
         
 
@@ -344,6 +366,7 @@ class ROARppoEnvE2E(ROAREnv):
                 next_bbox_list=self.agent.bbox_list[index_from:]+self.agent.bbox_list[:index_from+10-len(self.agent.bbox_list)]
             assert(len(next_bbox_list)==10)
             map_list,overlap = self.agent.occupancy_map.get_map_9(transform_list=self.agent.vt_queue,
+                                                                  speed_list=self.agent.speed_queue,
                                                     view_size=(CONFIG["x_res"], CONFIG["y_res"]),
                                                     boundary_size=(CONFIG["x_res"]//2, CONFIG["y_res"]//2),
                                                     bbox_list=self.agent.frame_queue,
@@ -355,8 +378,9 @@ class ROARppoEnvE2E(ROAREnv):
                                                     view_size=(CONFIG["x_res"], CONFIG["y_res"]))
             # print([x.shape for x in wall_list])
 
-            wall_list=np.array([skimage.measure.block_reduce(wall_list[i], (WALL_MAGNITUDES[i],WALL_MAGNITUDES[i]), np.max) for i in range(len(wall_list))])
+            # wall_list=np.array([skimage.measure.block_reduce(wall_list[i], (WALL_MAGNITUDES[i],WALL_MAGNITUDES[i]), np.max) for i in range(len(wall_list))])
             # print(map_list.shape,wall_list.shape)
+            # print(np.max(wall_list),np.min(wall_list))
             map_list=np.vstack((map_list,wall_list))
             image=np.hstack(map_list)
             # Get the image dimensions
@@ -397,6 +421,7 @@ class ROARppoEnvE2E(ROAREnv):
     #3location 3 rotation 3velocity 20 waypoline locations 20 wayline rewards
 
     def reset(self) -> Any:
+        self.crash_check = False
         if len(self.his_checkpoint)>=10:
             self.his_checkpoint=self.his_checkpoint[-10:]
             self.his_score=self.his_score[-10:]
@@ -427,8 +452,15 @@ class ROARppoEnvE2E(ROAREnv):
             print('step '+str(self.steps))
             super(ROARppoEnvE2E, self).step(None)
             self.steps+=1
-        # self.crash_step=0
-        # self.reward_step=0
+            print(self.agent.bbox_list[self.agent.int_counter%len(self.agent.bbox_list)].get_directional_velocity(self.agent.vehicle.velocity.x,self.agent.vehicle.velocity.y),'----------------------------------')
+            self.stopped_counter =0
+            self.crash_check = False
+        self.crash_step=0
+        self.reward_step=0
+        self.carla_runner.world.collision_sensor.history=[]
+        self.last_num_collision=0
+        self.stopped_counter =0
+        self.crash_check = False
         return self._get_obs()
 
     def wandb_logger(self):

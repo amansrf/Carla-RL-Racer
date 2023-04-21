@@ -25,7 +25,7 @@ from ROAR.agent_module.agent import Agent
 from pydantic import BaseModel, Field
 import json
 from PIL import Image
-
+import skimage.measure
 
 class OccupancyGridMap(Module):
     def __init__(self, agent: Agent, **kwargs):
@@ -347,7 +347,8 @@ class OccupancyGridMap(Module):
                 transform,
                 view_size = (100, 100)) -> np.ndarray:
         view_size=(view_size[0]*np.max(magnitude),view_size[1]*np.max(magnitude))
-        boundary_size=(view_size[0]*2,view_size[1]*2)
+        boundary_size=(view_size[0]*np.max(magnitude)//8,view_size[1]*np.max(magnitude)//8)
+        # boundary_size=(24,24)
         # print(boundary_size)
         map_to_view = self._height_map
         # print(self._map.shape,map_to_view.shape)
@@ -363,19 +364,33 @@ class OccupancyGridMap(Module):
         # print(m_map.shape)
         m_map[m_map==0]=np.nan
         m_map-=transform.location.y
-        m_map/=600
+        m_map/=100
         m_map+=0.5
         np.nan_to_num(m_map,False)
-        # print(np.max(m_map),m_map.dtype,'------------------------------')
-        image = Image.fromarray(m_map)
-        image = image.rotate(yaw)
-        m_map = np.asarray(image)
-        
+        # print(np.min(m_map[np.nonzero(m_map)]),np.max(m_map[np.nonzero(m_map)]))
         mapList=[]
         for i in magnitude:
-            x_extra, y_extra = boundary_size[0] // 2+view_size[0]*(8-i)//16, boundary_size[1] // 2+view_size[0]*(8-i)//16
-            mapList.append( m_map[y_extra-view_size[1] // 4*i//8 : m_map.shape[1] - y_extra-view_size[1] // 4*i//8,
-                            x_extra: m_map.shape[0] - x_extra])
+            vbsize=(first_cut_size[0]//np.max(magnitude)*i,first_cut_size[1]//np.max(magnitude)*i)
+            imap=m_map[first_cut_size[1] // 2-vbsize[1]//2:first_cut_size[1] // 2+vbsize[1]//2,
+                       first_cut_size[0] // 2-vbsize[0]//2:first_cut_size[0] // 2+vbsize[0]//2]
+            imap=skimage.measure.block_reduce(imap, (i,i), np.max)
+            image = Image.fromarray(imap)
+            image = image.rotate(yaw)
+            imap = np.asarray(image)
+            x_extra, y_extra = boundary_size[0]//np.max(magnitude) // 2, boundary_size[1]//np.max(magnitude) // 2
+            imap = imap[y_extra-view_size[1]//np.max(magnitude) // 4 : imap.shape[1] - y_extra-view_size[1]//np.max(magnitude) // 4,
+                            x_extra: imap.shape[0] - x_extra]
+            mapList.append(imap)
+        # # print(np.max(m_map),m_map.dtype,'------------------------------')
+        # image = Image.fromarray(m_map)
+        # image = image.rotate(yaw)
+        # m_map = np.asarray(image)
+        
+        # mapList=[]
+        # for i in magnitude:
+        #     x_extra, y_extra = boundary_size[0] // 2+view_size[0]*(np.max(magnitude)-i)//(np.max(magnitude)*2), boundary_size[0] // 2+view_size[0]*(np.max(magnitude)-i)//(np.max(magnitude)*2)
+        #     mapList.append( m_map[y_extra-view_size[1] // (np.max(magnitude)//2)*i//(np.max(magnitude)) : m_map.shape[1] - y_extra-view_size[1] // (np.max(magnitude)//2)*i//(np.max(magnitude)),
+        #                     x_extra: m_map.shape[0] - x_extra])
         return mapList
 
     # @profile
@@ -487,6 +502,7 @@ class OccupancyGridMap(Module):
     
     def get_map_9(self,
                 transform_list,
+                speed_list,
                 view_size = (100, 100),
                 boundary_size = (100, 100),
                          bbox_list=None,
@@ -532,17 +548,20 @@ class OccupancyGridMap(Module):
                 pass
         map_list.append(r_map)
         overlap=False
+        v_map = np.zeros_like(map_to_view)
         for i in range(num_frames):
-            v_map = np.zeros_like(map_to_view)
+            
             vehicle_x,vehicle_y=self.location_to_occu_cord(location=transform_list[i].location)[0]
             vehicle_x += (first_cut_size[0] // 2)-x
             vehicle_y += (first_cut_size[1] // 2)-y
             size=1
-            v_map[vehicle_y-size:vehicle_y+1+size, vehicle_x-size:vehicle_x+1+size] = 0.5
+            v_map[vehicle_y-size:vehicle_y+1+size, vehicle_x-size:vehicle_x+1+size] = min(speed_list[i]/500+0.4,1.0)
+            # if i==3:
+            #     print(min(speed_list[i]/255+0.0001,1))
             vehicle_locations = map_to_view[vehicle_y, vehicle_x]
             if np.any(vehicle_locations == 1):
                 overlap = True
-            map_list.append(v_map)
+        map_list.append(v_map)
             
         for i in range(len(map_list)):
             image = Image.fromarray(map_list[i])

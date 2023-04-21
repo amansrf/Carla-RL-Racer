@@ -58,8 +58,9 @@ class RLe2ePPOAgent(Agent):
         # self.curr_dist_to_strip = 0
         self.bbox: Optional[LineBBox] = None
         self.bbox_list = []# list of bbox
-        self.frame_queue = deque([None, None, None], maxlen=frame_stack)
-        self.vt_queue = deque([None, None, None], maxlen=frame_stack)
+        self.frame_queue = deque([None, None, None], maxlen=self.frame_stack)
+        self.vt_queue = deque([None, None, None], maxlen=self.frame_stack)
+        self.speed_queue = deque([None, None, None], maxlen=self.frame_stack)
         self._get_all_bbox()
 
         # print(len(self.bbox_list))
@@ -84,7 +85,8 @@ class RLe2ePPOAgent(Agent):
         self.bbox: Optional[LineBBox] = None
         self.frame_queue = deque([None, None, None], maxlen=self.frame_stack)
         self.vt_queue = deque([None, None, None], maxlen=self.frame_stack)
-        for _ in range(4):
+        self.speed_queue = deque([None, None, None], maxlen=self.frame_stack)
+        for _ in range(self.frame_stack):
             self.bbox_step()
         self.finish_loop=False
 
@@ -128,7 +130,7 @@ class RLe2ePPOAgent(Agent):
             else:
                 break
         if update_queue:
-            if len(self.frame_queue) < 4 and len(currentframe_crossed):
+            if len(self.frame_queue) < self.frame_stack and len(currentframe_crossed):
                 self.frame_queue.append(currentframe_crossed)
             elif len(currentframe_crossed):
                 self.frame_queue.popleft()
@@ -136,12 +138,19 @@ class RLe2ePPOAgent(Agent):
             else:
                 self.frame_queue.append(None)
             # add vehicle tranform
-            if len(self.vt_queue) < 4:
+            if len(self.vt_queue) < self.frame_stack:
                 self.logger.info(f"{self.vehicle.transform}")
                 self.vt_queue.append(self.vehicle.transform)
             else:
                 self.vt_queue.popleft()
                 self.vt_queue.append(self.vehicle.transform)
+            # add vehicle speed
+            if len(self.speed_queue) < self.frame_stack:
+                self.logger.info(f"{self.vehicle.get_speed(self.vehicle)}")
+                self.speed_queue.append(self.vehicle.get_speed(self.vehicle))
+            else:
+                self.speed_queue.popleft()
+                self.speed_queue.append(self.vehicle.get_speed(self.vehicle))
         else:
             if self.frame_queue[-1]==None:
                 self.frame_queue[-1]=currentframe_crossed
