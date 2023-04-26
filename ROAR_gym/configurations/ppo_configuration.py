@@ -10,8 +10,8 @@ sys.path.append(Path(os.getcwd()).parent.as_posix())
 misc_params = {
   "env_name": 'roar-e2e-ppo-v0',
   "run_fps": 32,  # TODO Link to the environment RUN_FPS
-  "model_directory": Path("./output/PPOe2e_major_filled_map_4_trial"),
-  "run_name": "PPOe2e_major_filled_map_4_trial",
+  "model_directory": Path("./output/PPOe2e_major_filled_map_12_trial"),
+  "run_name": "PPOe2e_major_filled_map_12_trial",
   "total_timesteps": int(1e6),#1e6
 }
 
@@ -64,7 +64,7 @@ PPO_params = dict(
   n_steps = 256 * misc_params["run_fps"],#1024
   batch_size=256,  # mini_batch_size = 256?
   # n_epochs=10,
-  gamma=0.999997,  # rec range .9 - .99 0.999997
+  gamma=1,  # rec range .9 - .99 0.999997
   ent_coef=.00,  # rec range .0 - .01
   # gae_lambda=0.95,
   # clip_range_vf=None,
