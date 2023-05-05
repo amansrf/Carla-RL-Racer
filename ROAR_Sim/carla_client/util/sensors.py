@@ -86,6 +86,9 @@ class IMUSensor(object):
     def __init__(self, parent_actor):
         self.sensor = None
         self._parent = parent_actor
+        # self.frame = 0
+        # self.timestamp = 0.0
+        # self.transform = ((0.0, 0.0, 0.0), (0.0, 0.0, 0.0))
         self.accelerometer = (0.0, 0.0, 0.0)
         self.gyroscope = (0.0, 0.0, 0.0)
         self.compass = 0.0
@@ -116,7 +119,10 @@ class IMUSensor(object):
             max(limits[0], min(limits[1], math.degrees(sensor_data.gyroscope.z))),
         )
         self.compass = math.degrees(sensor_data.compass)
-
+        # self.frame = sensor_data.frame
+        # self.timestamp = sensor_data.timestamp
+        # self.transform = sensor_data.transform
+        
 
 # ==============================================================================
 # -- LaneInvasionSensor --------------------------------------------------------

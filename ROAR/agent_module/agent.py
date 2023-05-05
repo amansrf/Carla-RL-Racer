@@ -143,6 +143,7 @@ class Agent(ABC):
             self.is_done = True
         else:
             self.is_done = False
+        # self.logger.info(f"imu data: {self.imu}")
         return VehicleControl()
 
     def sync_data(self, sensors_data: SensorsData, vehicle: Vehicle) -> None:
@@ -179,7 +180,7 @@ class Agent(ABC):
                 if sensors_data.rear_rgb is not None
                 else None
             )
-
+        
         if self.imu is not None:
             self.imu = sensors_data.imu_data
 

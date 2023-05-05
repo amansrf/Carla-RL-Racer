@@ -70,8 +70,7 @@ class ROAREnv(gym.Env, ABC):
                                                                                    clock=self.clock)
         self.carla_runner.world.tick(self.clock)
         self.carla_runner.convert_data()
-
-        self.agent.run_step(vehicle=self.carla_runner.vehicle_state)
+        self.agent.run_step(vehicle=self.carla_runner.vehicle_state, sensors_data=self.carla_runner.sensor_data)
         return self._get_obs(), self.get_reward(), self._terminal(), self._get_info()
 
     def reset(self) -> Any:

@@ -17,17 +17,19 @@ from typing import Optional
 import scipy.stats
 from collections import deque
 from scipy.interpolate import interp1d
-
+from ROAR.utilities_module.data_structures_models import IMUData
+from ROAR.utilities_module.data_structures_models import SensorsData
 class RLe2ePPOAgent(Agent):
     def __init__(self, vehicle: Vehicle, agent_settings: AgentConfig, frame_stack=4, **kwargs):
-        super().__init__(vehicle, agent_settings, **kwargs)
+        super().__init__(vehicle, agent_settings, **kwargs, imu=IMUData())
         self.mission_planner = WaypointFollowingMissionPlanner(agent=self)
         # occ_file_path = Path(agent_settings.occu_map_path)
         # self.occupancy_map = OccupancyGridMap(agent=self, threaded=True)
         # self.occupancy_map.load_from_file(occ_file_path)
         # self.plan_lst = list(self.mission_planner.produce_single_lap_mission_plan())
         # return 
-
+        self.angular_v = None
+        self.acceleration = None
 
         # the part about visualization
         self.flatten=True
@@ -92,7 +94,14 @@ class RLe2ePPOAgent(Agent):
             self.bbox_step()
         self.finish_loop=False
 
-    def run_step(self,vehicle: Vehicle,update_queue=True):
+    def run_step(self,vehicle: Vehicle, sensors_data: SensorsData, update_queue=True):
+        super(RLe2ePPOAgent, self).run_step(vehicle=vehicle,
+                                        sensors_data=sensors_data)
+        self.acceleration = self.imu.accelerometer
+        self.angular_v = self.imu.gyroscope
+
+        # self.logger.info(f"getting imu data {self.acceleration} {self.angular_v}")
+
         self.vehicle = vehicle
         self.bbox_step(update_queue)
 
@@ -143,14 +152,14 @@ class RLe2ePPOAgent(Agent):
                 self.frame_queue.append(None)
             # add vehicle tranform
             if len(self.vt_queue) < self.frame_stack:
-                self.logger.info(f"{self.vehicle.transform}")
+                #self.logger.info(f"{self.vehicle.transform}")
                 self.vt_queue.append(self.vehicle.transform)
             else:
                 self.vt_queue.popleft()
                 self.vt_queue.append(self.vehicle.transform)
             # add vehicle speed
             if len(self.speed_queue) < self.frame_stack:
-                self.logger.info(f"{self.vehicle.get_speed(self.vehicle)}")
+                #self.logger.info(f"{self.vehicle.get_speed(self.vehicle)}")
                 self.speed_queue.append(self.vehicle.get_speed(self.vehicle))
             else:
                 self.speed_queue.popleft()
