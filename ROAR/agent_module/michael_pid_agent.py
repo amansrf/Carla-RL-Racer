@@ -8,11 +8,12 @@ from ROAR.planning_module.mission_planner.waypoint_following_mission_planner imp
 from ROAR.utilities_module.data_structures_models import SensorsData
 from ROAR.utilities_module.vehicle_models import VehicleControl, Vehicle
 import logging
+from ROAR.utilities_module.data_structures_models import IMUData
 
 
 class PIDAgent(Agent):
     def __init__(self, target_speed=40, **kwargs):
-        super().__init__(**kwargs)
+        super().__init__(**kwargs, imu=IMUData())
         self.target_speed = target_speed
         self.logger = logging.getLogger("PID Agent")
         self.route_file_path = Path(self.agent_settings.waypoint_file_path)

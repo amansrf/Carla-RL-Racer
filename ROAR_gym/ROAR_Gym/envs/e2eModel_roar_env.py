@@ -26,8 +26,8 @@ from ROAR_gym.configurations.ppo_configuration import spawn_params
 mode='baseline'
 FRAME_STACK = 4
 CONFIG = {
-    "x_res": 24,
-    "y_res": 24
+    "x_res": 84,
+    "y_res": 84
 }
 WALL_MAGNITUDES = [1,8]
 

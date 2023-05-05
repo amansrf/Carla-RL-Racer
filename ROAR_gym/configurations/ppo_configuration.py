@@ -10,8 +10,8 @@ sys.path.append(Path(os.getcwd()).parent.as_posix())
 misc_params = {
   "env_name": 'roar-e2e-ppo-v0',
   "run_fps": 32,  # TODO Link to the environment RUN_FPS
-  "model_directory": Path("./output/PPOe2e_major_filled_map_12_trial"),
-  "run_name": "PPOe2e_major_filled_map_12_trial",
+  "model_directory": Path("./output/PPOe2e_major_filled_map_13_trial"),
+  "run_name": "PPOe2e_major_filled_map_13_trial",
   "total_timesteps": int(1e6),#1e6
 }
 
