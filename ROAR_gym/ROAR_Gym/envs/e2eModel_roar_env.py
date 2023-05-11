@@ -26,8 +26,8 @@ from ROAR_gym.configurations.ppo_configuration import spawn_params
 mode='baseline'
 FRAME_STACK = 4
 CONFIG = {
-    "x_res": 24,
-    "y_res": 24
+    "x_res": 84,
+    "y_res": 84
 }
 WALL_MAGNITUDES = [1,8]
 
@@ -393,16 +393,16 @@ class ROARppoEnvE2E(ROAREnv):
             map_list=np.vstack((map_list,wall_list))
             image=np.hstack(map_list)
             # Get the image dimensions
-            height, width = image.shape[:2]
+            # height, width = image.shape[:2]
 
-            # Double the size of the image
-            new_height = height * 6
-            new_width = width * 6
+            # # Double the size of the image
+            # new_height = height * 2
+            # new_width = width * 2
 
-            # Resize the image using cv2.resize()
-            resized_img = cv2.resize(image, (new_width, new_height))
+            # # Resize the image using cv2.resize()
+            # resized_img = cv2.resize(image, (new_width, new_height))
 
-            cv2.imshow("data", resized_img) # uncomment to show occu map
+            cv2.imshow("data", image) # uncomment to show occu map
             cv2.waitKey(1)
             #print(mapList.shape,'------------------------------------------------------------------------------------------------------------------------')
             return map_list
