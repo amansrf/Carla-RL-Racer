@@ -468,7 +468,7 @@ class Atari_PPO_Adapted_24(BaseFeaturesExtractor):
     """
     def __init__(self, observation_space: gym.spaces.Box, features_dim: int = 256):
         super(Atari_PPO_Adapted_24, self).__init__(observation_space,features_dim)
-        channels = observation_space.shape[0]
+        channels = observation_space.shape[0]*observation_space.shape[1]
         self.network = nn.Sequential(
             # Scale(1/255),
             layer_init(nn.Conv2d(channels, 32, 8, stride=2)),
