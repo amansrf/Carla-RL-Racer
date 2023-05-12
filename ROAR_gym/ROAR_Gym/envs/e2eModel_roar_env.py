@@ -23,7 +23,7 @@ from ROAR_gym.utility import json_read_write, next_spawn_point
 # Load spawn parameters from the ppo_configuration file
 from ROAR_gym.configurations.ppo_configuration import spawn_params
 
-mode='baseline'
+mode='newb'
 FRAME_STACK = 4
 CONFIG = {
     "x_res": 84,
@@ -50,7 +50,10 @@ class ROARppoEnvE2E(ROAREnv):
         self.action_space = Box(low=low, high=high, dtype=np.float32)
 
         # self.observation_space = Box(0, 1, shape=(FRAME_STACK,2, CONFIG["x_res"], CONFIG["y_res"]), dtype=np.float32)
-        self.observation_space = Box(0, 1, shape=(4, CONFIG["x_res"], CONFIG["y_res"]), dtype=np.float32)
+        if mode=='baseline':
+            self.observation_space = Box(0, 1, shape=(4, CONFIG["x_res"], CONFIG["y_res"]), dtype=np.float32)
+        else:
+            self.observation_space = Box(0, 1, shape=(3, CONFIG["x_res"], CONFIG["y_res"]), dtype=np.float32)
         self.prev_speed = 0
         self.prev_cross_reward = 0
         self.crash_check = False
@@ -86,6 +89,8 @@ class ROARppoEnvE2E(ROAREnv):
         self.deadzone_level = 0.001
         self.overlap = False
         self.last_num_collision=0
+        self.prev_action=None
+        self.prev_collisoin=None
 
         # Spawn initializations
         # TODO: This is a hacky fix because the reset function seems to be called on init as well.
@@ -166,6 +171,7 @@ class ROARppoEnvE2E(ROAREnv):
         self.steps += 1
 
         action = action.reshape((-1))
+        self.prev_action=np.array(action)
         # decision=action[3]
         # # if decision<-2: #turning mode
         # #     throttle = (action[0] + 1.5) / 2 + 1
@@ -336,13 +342,16 @@ class ROARppoEnvE2E(ROAREnv):
         #     #     print((self.agent.bbox_list[i].has_crossed(self.agent.vehicle.transform))[0])
         #     print('drive back')
         #     self.crash_check = True
-        # if self.carla_runner.get_num_collision() > self.last_num_collision:
-        #     reward -= self.carla_runner.world.collision_sensor.history[-1][-1]/100000
-        #     self.last_num_collision=self.carla_runner.get_num_collision()
+        if self.carla_runner.get_num_collision() > self.last_num_collision:
+            # reward -= self.carla_runner.world.collision_sensor.history[-1][-1]/100000
+            self.prev_collisoin=self.carla_runner.world.collision_sensor.history[-1][-1]/100000
+            self.last_num_collision=self.carla_runner.get_num_collision()
             # print(f'collision number: {self.carla_runner.get_num_collision()}------------------{self.carla_runner.world.collision_sensor.history[-1][-1]}')
             # if self.carla_runner.world.collision_sensor.history[-1][-1]>10000:
             #     reward -= 100
             #     self.crash_check = True
+        else:
+            self.prev_collisoin=0
         # print(f'{self.carla_runner.get_num_collision()}')
         # if self.agent.int_counter > 1 and self.agent.vehicle.get_speed(self.agent.vehicle) < 2:
         # print(self.agent.bbox_list[self.agent.int_counter%len(self.agent.bbox_list)].get_directional_velocity(self.agent.vehicle.velocity.x,self.agent.vehicle.velocity.y),'----------------------------------')
@@ -408,26 +417,32 @@ class ROARppoEnvE2E(ROAREnv):
             return map_list
 
         else:
-            data = self.agent.occupancy_map.get_map(transform=self.agent.vehicle.transform,
-                                                    view_size=(CONFIG["x_res"], CONFIG["y_res"]),
-                                                    arbitrary_locations=self.agent.bbox.get_visualize_locs(),
-                                                    arbitrary_point_value=self.agent.bbox.get_value(),
-                                                    vehicle_velocity=self.agent.vehicle.velocity,
-                                                    # rotate=self.agent.bbox.get_yaw()
-                                                    )
-            # data = cv2.resize(occu_map, (CONFIG["x_res"], CONFIG["y_res"]), interpolation=cv2.INTER_AREA)
-            #cv2.imshow("Occupancy Grid Map", cv2.resize(np.float32(data), dsize=(500, 500)))
+            wall_list=self.agent.occupancy_map.get_wall_series(transform=self.agent.vt_queue[-1],magnitude=WALL_MAGNITUDES,
+                                                    view_size=(CONFIG["x_res"], CONFIG["y_res"]))
+            # obs=[]
+            # yaw=self.agent.vt_queue[-1].rotation.yaw
+            # roll=self.agent.vt_queue[-1].rotation.roll
+            # pitch=self.agent.vt_queue[-1].rotation.pitch
+            # obs.append(roll)
+            # obs.append(pitch)
+            # obs=np.array(obs)
+            rotation=self.agent.vt_queue[-1].rotation.to_array()
+            speed=self.agent.vehicle.velocity.to_array()
+            acceleration=self.agent.acceleration.to_array()
+            angular_v=self.agent.angular_v.to_array()
 
-            # data_view=np.sum(data,axis=2)
-            cv2.imshow("data", data) # uncomment to show occu map
-            cv2.waitKey(1)
-            # yaw_angle=self.agent.vehicle.transform.rotation.yaw
-            # velocity=self.agent.vehicle.get_speed(self.agent.vehicle)
-            # data[0,0,2]=velocity
-            data_input=data.copy()
-            data_input[data_input==1]=-10
-            return data_input  # height x width x 3 array
-    #3location 3 rotation 3velocity 20 waypoline locations 20 wayline rewards
+            target=self.agent.bbox_list[self.agent.int_counter%len(self.agent.bbox_list)]
+            target_yaw=target.get_yaw()
+            target_dis=target.dis(self.agent.vehicle.transform.location.x,self.agent.vehicle.transform.location.z)
+            # target_eq=target.eq(self.agent.vehicle.transform.location.x,self.agent.vehicle.transform.location.z)
+            reward_line=np.array([target_yaw,target_dis])
+
+            obs=np.append(rotation,speed,acceleration,angular_v,reward_line,self.prev_action,np.array(self.prev_collisoin))
+            tmp=np.zeros_like(wall_list[0])
+            tmp[0][:17]=obs
+            map_list=np.append(wall_list,tmp,axis=0)
+            return map_list
+
 
     def reset(self) -> Any:
         self.crash_check = False
