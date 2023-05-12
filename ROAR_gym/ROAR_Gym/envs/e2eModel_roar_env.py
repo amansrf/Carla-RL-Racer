@@ -343,13 +343,13 @@ class ROARppoEnvE2E(ROAREnv):
         #     print('drive back')
         #     self.crash_check = True
         if self.carla_runner.get_num_collision() > self.last_num_collision:
-            # reward -= self.carla_runner.world.collision_sensor.history[-1][-1]/100000
+            reward -= self.carla_runner.world.collision_sensor.history[-1][-1]/100000
             self.prev_collisoin=self.carla_runner.world.collision_sensor.history[-1][-1]/100000
             self.last_num_collision=self.carla_runner.get_num_collision()
-            # print(f'collision number: {self.carla_runner.get_num_collision()}------------------{self.carla_runner.world.collision_sensor.history[-1][-1]}')
-            # if self.carla_runner.world.collision_sensor.history[-1][-1]>10000:
-            #     reward -= 100
-            #     self.crash_check = True
+            print(f'collision number: {self.carla_runner.get_num_collision()}------------------{self.carla_runner.world.collision_sensor.history[-1][-1]}')
+            if self.carla_runner.world.collision_sensor.history[-1][-1]>10000:
+                reward -= 100
+                self.crash_check = True
         else:
             self.prev_collisoin=0
         # print(f'{self.carla_runner.get_num_collision()}')
@@ -359,7 +359,7 @@ class ROARppoEnvE2E(ROAREnv):
         if self.steps>100 and self.agent.bbox_list[self.agent.int_counter%len(self.agent.bbox_list)].get_directional_velocity(self.agent.vehicle.velocity.x,self.agent.vehicle.velocity.y) < 0.1:
             self.stopped_counter += 1
             if self.stopped_counter >= self.stopped_max_count:
-                # reward -= 100
+                reward -= 100
                 print('stopped')
                 self.crash_check = True
         else:
@@ -437,7 +437,7 @@ class ROARppoEnvE2E(ROAREnv):
             # target_eq=target.eq(self.agent.vehicle.transform.location.x,self.agent.vehicle.transform.location.z)
             reward_line=np.array([target_yaw,target_dis]).flatten()
 
-            obs=np.concatenate([rotation,speed,acceleration,angular_v,reward_line,self.prev_action])#,np.array(self.prev_collisoin)])
+            obs=np.concatenate([rotation/180,speed/200,acceleration/5,angular_v/np.pi,reward_line/10,self.prev_action])#,np.array(self.prev_collisoin)])
             # print(f"obs shape {obs.shape}")
 
             target_shape = np.array(wall_list).shape

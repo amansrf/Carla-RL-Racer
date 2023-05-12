@@ -455,7 +455,8 @@ class AutoRacingNet(BaseFeaturesExtractor):
         )
 
         self.lstm = nn.LSTM(input_size = self.FCN_channel + self.CNN_channel, hidden_size = 128, num_layers = 1)
-        self.fc = nn.Linear(self.lstm.hidden_size, features_dim)
+        self.fc = nn.Linear(self.lstm.hidden_size, self.lstm.hidden_size)
+        self.fc2 = nn.Linear(self.lstm.hidden_size, features_dim)
       
 
 
@@ -471,9 +472,9 @@ class AutoRacingNet(BaseFeaturesExtractor):
         out1 = self.CNN(occupancy_map)
         out2 = self.FCN(info_list)
         joint_result = th.cat((out1, out2), dim=1)
-        # lstm_output, _ = self.lstm(joint_result)
-        # output = self.fc(lstm_output)
-        return joint_result
+        lstm_output, _ = self.lstm(joint_result)
+        output = self.fc2(nn.ReLU(self.fc(lstm_output)))
+        return output
 
 
 
