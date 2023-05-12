@@ -16,11 +16,20 @@ import cv2
 from typing import Optional
 import scipy.stats
 from collections import deque
-
+from scipy.interpolate import interp1d
+from ROAR.utilities_module.data_structures_models import IMUData
+from ROAR.utilities_module.data_structures_models import SensorsData
 class RLe2ePPOAgent(Agent):
     def __init__(self, vehicle: Vehicle, agent_settings: AgentConfig, frame_stack=4, **kwargs):
-        super().__init__(vehicle, agent_settings, **kwargs)
+        super().__init__(vehicle, agent_settings, **kwargs, imu=IMUData())
         self.mission_planner = WaypointFollowingMissionPlanner(agent=self)
+        # occ_file_path = Path(agent_settings.occu_map_path)
+        # self.occupancy_map = OccupancyGridMap(agent=self, threaded=True)
+        # self.occupancy_map.load_from_file(occ_file_path)
+        # self.plan_lst = list(self.mission_planner.produce_single_lap_mission_plan())
+        # return 
+        self.angular_v = None
+        self.acceleration = None
 
         # the part about visualization
         self.flatten=True
@@ -30,21 +39,19 @@ class RLe2ePPOAgent(Agent):
         self.occupancy_map.load_from_file(occ_file_path)
         occ_height_file_path = Path(agent_settings.occu_height_map_path)
         self.occupancy_map.load_height_from_file(occ_height_file_path)
-
         self.plan_lst = list(self.mission_planner.produce_single_lap_mission_plan())
-
         self.kwargs = kwargs
-        self.interval = self.kwargs.get('interval', 20)
+        self.interval = self.kwargs.get('interval', 100)
         self.look_back = self.kwargs.get('look_back', 5)
         self.look_back_max = self.kwargs.get('look_back_max', 10)
         self.thres = self.kwargs.get('thres', 1e-3)
         self.frame_stack = frame_stack
-
+        self.line_length=12
         if self.flatten:
-            self.bbox_reward_list=[0.499 for _ in range(20)]
+            self.bbox_reward_list=[0.499 for _ in range(self.line_length)]
         else:
-            middle=scipy.stats.norm(20//2, 20//3).pdf(20//2)
-            self.bbox_reward_list=[scipy.stats.norm(20//2, 20//3).pdf(i)/middle*0.499 for i in range(20)]
+            middle=scipy.stats.norm(self.line_length//2, self.line_length//3).pdf(self.line_length//2)
+            self.bbox_reward_list=[scipy.stats.norm(self.line_length//2, self.line_length//3).pdf(i)/middle*0.499 for i in range(self.line_length)]
         self.spawn_counter = 0
         self.int_counter = self.spawn_counter
         self.cross_reward = 0
@@ -53,16 +60,27 @@ class RLe2ePPOAgent(Agent):
         # self.curr_dist_to_strip = 0
         self.bbox: Optional[LineBBox] = None
         self.bbox_list = []# list of bbox
-        self.frame_queue = deque([None, None, None], maxlen=frame_stack)
-        self.vt_queue = deque([None, None, None], maxlen=frame_stack)
+        self.frame_queue = deque([None, None, None], maxlen=self.frame_stack)
+        self.vt_queue = deque([None, None, None], maxlen=self.frame_stack)
+        self.speed_queue = deque([None, None, None], maxlen=self.frame_stack)
+        self.off_reward=False
         self._get_all_bbox()
+
+        # print(len(self.bbox_list))
+        # f = open("./tempout.txt", 'w')
+        # for line in self.bbox_list:
+        #     f.write(f"{line.x2} {line.z2}\n")
+        # f.close()
+        # exit()
+
         for _ in range(4):
             self.bbox_step()
         self.finish_loop=False
 
     def reset(self,vehicle: Vehicle):
         self.vehicle=vehicle
-        self.int_counter = self.spawn_counter
+        self.int_counter = self.spawn_counter #change back
+        print(f'spawn index: {self.int_counter}')
         self.cross_reward = 0
         self.counter = 0
         self.finished = False
@@ -70,11 +88,20 @@ class RLe2ePPOAgent(Agent):
         self.bbox: Optional[LineBBox] = None
         self.frame_queue = deque([None, None, None], maxlen=self.frame_stack)
         self.vt_queue = deque([None, None, None], maxlen=self.frame_stack)
-        for _ in range(4):
+        self.speed_queue = deque([None, None, None], maxlen=self.frame_stack)
+        self.off_reward=False
+        for _ in range(self.frame_stack):
             self.bbox_step()
         self.finish_loop=False
 
-    def run_step(self,vehicle: Vehicle,update_queue=True):
+    def run_step(self,vehicle: Vehicle, sensors_data: SensorsData, update_queue=True):
+        super(RLe2ePPOAgent, self).run_step(vehicle=vehicle,
+                                        sensors_data=sensors_data)
+        self.acceleration = self.imu.accelerometer
+        self.angular_v = self.imu.gyroscope
+
+        # self.logger.info(f"getting imu data {self.acceleration} {self.angular_v}")
+
         self.vehicle = vehicle
         self.bbox_step(update_queue)
 
@@ -105,15 +132,18 @@ class RLe2ePPOAgent(Agent):
         currentframe_crossed = []
 
         while(self.vehicle.transform.location.x!=0):
-            crossed, dist = self.bbox_list[self.int_counter%len(self.bbox_list)].has_crossed(self.vehicle.transform)
+            crossed, dist,online_dist = self.bbox_list[self.int_counter%len(self.bbox_list)].has_crossed(self.vehicle.transform)
             if crossed:
                 self.cross_reward+=crossed
                 currentframe_crossed.append(self.bbox_list[self.int_counter%len(self.bbox_list)])
                 self.int_counter += 1
+                if abs(online_dist)>self.line_length//2:
+                    self.off_reward=True
+                print(f'crossed{self.int_counter}')
             else:
                 break
         if update_queue:
-            if len(self.frame_queue) < 4 and len(currentframe_crossed):
+            if len(self.frame_queue) < self.frame_stack and len(currentframe_crossed):
                 self.frame_queue.append(currentframe_crossed)
             elif len(currentframe_crossed):
                 self.frame_queue.popleft()
@@ -121,11 +151,19 @@ class RLe2ePPOAgent(Agent):
             else:
                 self.frame_queue.append(None)
             # add vehicle tranform
-            if len(self.vt_queue) < 4:
+            if len(self.vt_queue) < self.frame_stack:
+                #self.logger.info(f"{self.vehicle.transform}")
                 self.vt_queue.append(self.vehicle.transform)
             else:
                 self.vt_queue.popleft()
                 self.vt_queue.append(self.vehicle.transform)
+            # add vehicle speed
+            if len(self.speed_queue) < self.frame_stack:
+                #self.logger.info(f"{self.vehicle.get_speed(self.vehicle)}")
+                self.speed_queue.append(self.vehicle.get_speed(self.vehicle))
+            else:
+                self.speed_queue.popleft()
+                self.speed_queue.append(self.vehicle.get_speed(self.vehicle))
         else:
             if self.frame_queue[-1]==None:
                 self.frame_queue[-1]=currentframe_crossed
@@ -152,7 +190,7 @@ class RLe2ePPOAgent(Agent):
             if abs(dx) < self.thres and abs(dz) < self.thres:
                 curr_lb += 1
             else:
-                self.bbox_list.append(LineBBox(t1, t2, self.bbox_reward_list,self.flatten))
+                self.bbox_list.append(LineBBox(t1, t2, self.bbox_reward_list,self.flatten,self.line_length))
                 local_int_counter += 1
                 curr_lb = self.look_back
                 curr_idx = local_int_counter * self.interval
@@ -179,7 +217,7 @@ class RLe2ePPOAgent(Agent):
             if abs(dx) < self.thres and abs(dz) < self.thres:
                 curr_lb += 1
             else:
-                self.bbox = LineBBox(t1, t2,self.bbox_reward_list,self.flatten)
+                self.bbox = LineBBox(t1, t2,self.bbox_reward_list,self.flatten,self.line_length)
                 return
         # no next bbox
         print("finished all the iterations!")
@@ -187,7 +225,7 @@ class RLe2ePPOAgent(Agent):
 
 
 class LineBBox(object):
-    def __init__(self, transform1: Transform, transform2: Transform,bbox_reward_list,flatten) -> None:
+    def __init__(self, transform1: Transform, transform2: Transform,bbox_reward_list,flatten,length) -> None:
         self.x1, self.z1 = transform1.location.x, transform1.location.z
         self.x2, self.z2 = transform2.location.x, transform2.location.z
         #print(self.x2, self.z2)
@@ -196,10 +234,10 @@ class LineBBox(object):
         self.eq = self._construct_eq()
         self.dis = self._construct_dis()
         self.strip_list = None
-        self.size = 20
+        self.size = length
         self.bbox_reward_list=bbox_reward_list
         self.strip_list = None
-        self.generate_visualize_locs(20)
+        self.generate_visualize_locs(length)
         self.flatten=flatten
 
         if self.eq(self.x1, self.z1) > 0:
@@ -260,12 +298,13 @@ class LineBBox(object):
     def has_crossed(self, transform: Transform):
         x, z = transform.location.x, transform.location.z
         dist = self.eq(x, z)
+        online_dist=self.dis(x,z)
         crossed=dist > 0 if self.pos_true else dist < 0
         if self.flatten:
-            return (crossed,dist)
+            return (crossed,dist,online_dist)
         else:
             middle=scipy.stats.norm(self.size//2, self.size//2).pdf(self.size//2)
-            return (scipy.stats.norm(self.size//2, self.size//2).pdf(self.size//2-self.dis(x, z))/middle if crossed else 0, dist)
+            return (scipy.stats.norm(self.size//2, self.size//2).pdf(self.size//2-online_dist)/middle if crossed else 0, dist,online_dist)
 
     def generate_visualize_locs(self, size=10):
         if self.strip_list is not None:

@@ -180,6 +180,18 @@ class DepthData(BaseModel):
 
 
 class IMUData(BaseModel):
+    frame : int = Field(
+        default=int(),
+        title="imu data's frame",
+        description="Frame number when the measurement took place."
+    )
+
+    timestamp : float = Field(
+        default=float(),
+        title="imu data's timestamp",
+        description="Simulation time of the measurement in seconds since the beginning of the episode."
+    )
+
     accelerometer: Vector3D = Field(
         default=Vector3D(),
         title="Accelerometer data",
@@ -189,6 +201,16 @@ class IMUData(BaseModel):
         default=Vector3D(),
         title="Gyroscope data",
         description="Angular velocity in rad/sec",
+    )
+    transform: Transform = Field(
+        default=Transform(),
+        title="Sensor's transform",
+        description="Location and rotation in world coordinates of the sensor at the time of the measurement.",
+    )
+    compass: float = Field(
+        default=float(), 
+        title="imu compass",
+        description="Orientation in radians. North is (0.0, -1.0, 0.0) in UE."
     )
 
 

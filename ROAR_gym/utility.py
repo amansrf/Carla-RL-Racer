@@ -72,7 +72,7 @@ def next_spawn_point(curr_spawn_pt_id):
             if curr_spawn_pt_id < num_spawn_pts - 1:
                 return curr_spawn_pt_id + 1
             else:
-                return init_spawn_pt
+                return 0
         elif mode == "linear backward":
             if curr_spawn_pt_id > init_spawn_pt:
                 return curr_spawn_pt_id - 1

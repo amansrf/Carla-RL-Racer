@@ -41,7 +41,7 @@ class CollisionSensor(object):
         self.hud.notification("Collision with %r" % actor_type)
         impulse = event.normal_impulse
         intensity = math.sqrt(impulse.x ** 2 + impulse.y ** 2 + impulse.z ** 2)
-        if intensity > 1000:  # 10000 was the original value
+        if intensity > 10:  # 10000 was the original value
             self.history.append((event.frame, intensity))
         if len(self.history) > 4000:
             self.history.pop(0)
@@ -86,6 +86,9 @@ class IMUSensor(object):
     def __init__(self, parent_actor):
         self.sensor = None
         self._parent = parent_actor
+        # self.frame = 0
+        # self.timestamp = 0.0
+        # self.transform = ((0.0, 0.0, 0.0), (0.0, 0.0, 0.0))
         self.accelerometer = (0.0, 0.0, 0.0)
         self.gyroscope = (0.0, 0.0, 0.0)
         self.compass = 0.0
@@ -116,7 +119,10 @@ class IMUSensor(object):
             max(limits[0], min(limits[1], math.degrees(sensor_data.gyroscope.z))),
         )
         self.compass = math.degrees(sensor_data.compass)
-
+        # self.frame = sensor_data.frame
+        # self.timestamp = sensor_data.timestamp
+        # self.transform = sensor_data.transform
+        
 
 # ==============================================================================
 # -- LaneInvasionSensor --------------------------------------------------------
