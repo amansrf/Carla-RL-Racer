@@ -407,6 +407,7 @@ class Atari_PPO_Adapted_CNN(BaseFeaturesExtractor):
     def __init__(self, observation_space: gym.spaces.Box, features_dim: int = 256):
         super(Atari_PPO_Adapted_CNN, self).__init__(observation_space,features_dim)
         channels = observation_space.shape[0]
+
         self.network = nn.Sequential(
             # Scale(1/255),
             layer_init(nn.Conv2d(channels, 32, 8, stride=4)),
@@ -424,6 +425,59 @@ class Atari_PPO_Adapted_CNN(BaseFeaturesExtractor):
         # observations=observations.view(observations.shape[0],-1,*observations.shape[3:])
         #print(observations.shape)
         return self.network(observations)
+
+class AutoRacingNet(BaseFeaturesExtractor):
+    def __init__(self, observation_space: gym.spaces.Box, features_dim: int = 256):
+        super(AutoRacingNet, self).__init__(observation_space,features_dim)
+        
+        channels = observation_space.shape[0]
+        self.CNN_channel = 128
+        self.FCN_channel = 128
+
+        print("initing racing net")
+        self.CNN = nn.Sequential(
+            layer_init(nn.Conv2d(channels - 1, 32, 8, stride=4)),
+            nn.ReLU(),
+            layer_init(nn.Conv2d(32, 64, 4, stride=2)),
+            nn.ReLU(),
+            layer_init(nn.Conv2d(64, 64, 3, stride=1)),
+            nn.ReLU(),
+            nn.Flatten(),
+            layer_init(nn.Linear(3136, self.CNN_channel)),
+        )
+
+        self.FCN = nn.Sequential(
+            layer_init(nn.Linear(16, 32)), 
+            nn.ReLU(),
+            layer_init(nn.Linear(32, 64)),
+            nn.ReLU(),
+            layer_init(nn.Linear(64, self.FCN_channel)),
+        )
+
+        self.lstm = nn.LSTM(input_size = self.FCN_channel + self.CNN_channel, hidden_size = 128, num_layers = 1)
+        self.fc = nn.Linear(self.lstm.hidden_size, features_dim)
+      
+
+
+    def forward(self, observations: th.Tensor) -> th.Tensor:
+        # observations=observations.view(observations.shape[0],-1,*observations.shape[3:])
+        #print(observations.shape)
+        print(f"observations shape {observations.shape}")
+        occupancy_map = observations[:, :2, :, :]
+        info_list = observations[:, 2, 0, :16]
+        #self.info_list = observation_space[-1, : 17]
+        print(f"map shape {occupancy_map.shape}")
+        #print(self.info_list.shape)
+        out1 = self.CNN(occupancy_map)
+        out2 = self.FCN(info_list)
+        joint_result = th.cat((out1, out2), dim=1)
+        # lstm_output, _ = self.lstm(joint_result)
+        # output = self.fc(lstm_output)
+        return joint_result
+
+
+
+
 
 class Atari_PPO_Adapted_36(BaseFeaturesExtractor):
     """
