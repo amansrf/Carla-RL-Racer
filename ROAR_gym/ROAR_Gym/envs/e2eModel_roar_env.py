@@ -164,6 +164,10 @@ class ROARppoEnvE2E(ROAREnv):
         obs = []
         rewards = []
         self.steps += 1
+        self.speed = self.agent.vehicle.get_speed(self.agent.vehicle)
+        print(self.speed)
+        if self.speed > self.current_hs:
+            self.current_hs = self.speed
 
         action = action.reshape((-1))
         throttle_minus_braking = action[0]
@@ -187,7 +191,10 @@ class ROARppoEnvE2E(ROAREnv):
             throttle=0
             braking=abs(decision)*2
         else:
-            throttle=decision*2
+            if self.speed<=60:
+                throttle=decision*2
+            else:
+                throttle=0
             braking=0
         steering=action[1]/2
 
@@ -217,9 +224,7 @@ class ROARppoEnvE2E(ROAREnv):
         self.frame_reward = sum(rewards)
         self.ep_rewards += sum(rewards)
 
-        self.speed = self.agent.vehicle.get_speed(self.agent.vehicle)
-        if self.speed > self.current_hs:
-            self.current_hs = self.speed
+        
 
         if is_done:
             self.wandb_logger()
@@ -304,34 +309,28 @@ class ROARppoEnvE2E(ROAREnv):
 
         if self.agent.cross_reward > self.prev_cross_reward:
             if self.agent.off_reward:
-                # reward -= 100
+                reward -= 100
                 print('off')
                 self.crash_check = True
             else:
                 reward += (self.agent.cross_reward - self.prev_cross_reward)*self.agent.interval*self.time_to_waypoint_ratio
         # print(self.agent.vehicle.velocity.x,self.agent.vehicle.velocity.y,self.agent.vehicle.velocity.z)
         # print(self.agent.bbox_list[self.agent.int_counter%len(self.agent.bbox_list)].dis(self.agent.vehicle.transform.location.x,self.agent.vehicle.transform.location.z),'----------------------------------')
-        # if not (self.agent.bbox_list[max(self.agent.int_counter - self.death_line_dis,1)].has_crossed(self.agent.vehicle.transform))[0]:
-        #     reward -= 100
-        #     # for i in range(20):
-        #     #     print((self.agent.bbox_list[i].has_crossed(self.agent.vehicle.transform))[0])
-        #     print('drive back')
-        #     self.crash_check = True
-        # if self.carla_runner.get_num_collision() > self.last_num_collision:
-        #     reward -= self.carla_runner.world.collision_sensor.history[-1][-1]/100000
-        #     self.last_num_collision=self.carla_runner.get_num_collision()
-            # print(f'collision number: {self.carla_runner.get_num_collision()}------------------{self.carla_runner.world.collision_sensor.history[-1][-1]}')
-            # if self.carla_runner.world.collision_sensor.history[-1][-1]>10000:
-            #     reward -= 100
-            #     self.crash_check = True
+
+        if self.carla_runner.get_num_collision() > self.last_num_collision:
+            reward -= self.carla_runner.world.collision_sensor.history[-1][-1]/10000
+            self.last_num_collision=self.carla_runner.get_num_collision()
+            print(f'collision number: {self.carla_runner.get_num_collision()}------------------{self.carla_runner.world.collision_sensor.history[-1][-1]}')
+            if self.carla_runner.world.collision_sensor.history[-1][-1]>10000:
+                reward -= 100
+                self.crash_check = True
         # print(f'{self.carla_runner.get_num_collision()}')
-        # if self.agent.int_counter > 1 and self.agent.vehicle.get_speed(self.agent.vehicle) < 2:
         # print(self.agent.bbox_list[self.agent.int_counter%len(self.agent.bbox_list)].get_directional_velocity(self.agent.vehicle.velocity.x,self.agent.vehicle.velocity.y),'----------------------------------')
         # print(self.agent.vehicle.velocity.x,self.agent.vehicle.velocity.y)
         if self.steps>100 and self.agent.bbox_list[self.agent.int_counter%len(self.agent.bbox_list)].get_directional_velocity(self.agent.vehicle.velocity.x,self.agent.vehicle.velocity.y) < 0.1:
             self.stopped_counter += 1
             if self.stopped_counter >= self.stopped_max_count:
-                # reward -= 100
+                reward -= 100
                 print('stopped')
                 self.crash_check = True
         else:
