@@ -71,7 +71,7 @@ from stable_baselines3.common.vec_env import DummyVecEnv, VecVideoRecorder
 
 
 # imports for helper functions and torch cnn models
-from ppo_util import find_latest_model, CustomMaxPoolCNN, Atari_PPO_Adapted_CNN,Atari_PPO_Adapted_24,Atari_PPO_Shallow_24
+from ppo_util import find_latest_model, CustomMaxPoolCNN, Atari_PPO_Adapted_CNN,Atari_PPO_Adapted_24,Atari_PPO_Shallow_24, AutoRacingNet
 
 sys.path.append(Path(os.getcwd()).parent.as_posix())
 
@@ -180,8 +180,10 @@ def main(pass_num):
 
     # Setting the feature extract or based on the environment mode
     policy_kwargs = dict(
-        features_extractor_class=Atari_PPO_Adapted_CNN,
-        features_extractor_kwargs=dict(features_dim=256))
+        features_extractor_class=AutoRacingNet,
+        #features_extractor_class=Atari_PPO_Adapted_CNN,
+        features_extractor_kwargs=dict(features_dim=256),
+        use_sde=True)
 
     # training kwargs for SAC init
     training_kwargs = SAC_params

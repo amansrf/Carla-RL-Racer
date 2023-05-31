@@ -23,7 +23,7 @@ from ROAR_gym.utility import json_read_write, next_spawn_point
 # Load spawn parameters from the ppo_configuration file
 from ROAR_gym.configurations.ppo_configuration import spawn_params
 
-mode='baseline'
+mode='newb'
 FRAME_STACK = 4
 CONFIG = {
     "x_res": 84,
@@ -42,15 +42,18 @@ class ROARppoEnvE2E(ROAREnv):
         # high=np.array([-1.5, 10.0, 10.0,3.0])
         # low=np.array([-7, -10.0])
         # high=np.array([-1.5, 10.0])
-        low=np.array([-1.5, -2.0])
-        high=np.array([-0.5, 2.0])
+        low=np.array([-1, -1.0])
+        high=np.array([1, 1.0])
         # low=np.array([-1, -2.0])
         # high=np.array([1, 2.0])
         self.mode=mode
         self.action_space = Box(low=low, high=high, dtype=np.float32)
 
         # self.observation_space = Box(0, 1, shape=(FRAME_STACK,2, CONFIG["x_res"], CONFIG["y_res"]), dtype=np.float32)
-        self.observation_space = Box(0, 1, shape=(4, CONFIG["x_res"], CONFIG["y_res"]), dtype=np.float32)
+        if mode=='baseline':
+            self.observation_space = Box(0, 1, shape=(4, CONFIG["x_res"], CONFIG["y_res"]), dtype=np.float32)
+        else:
+            self.observation_space = Box(0, 1, shape=(3, CONFIG["x_res"], CONFIG["y_res"]), dtype=np.float32)
         self.prev_speed = 0
         self.prev_cross_reward = 0
         self.crash_check = False
@@ -86,6 +89,8 @@ class ROARppoEnvE2E(ROAREnv):
         self.deadzone_level = 0.001
         self.overlap = False
         self.last_num_collision=0
+        self.prev_action= np.array([0, 0, 0])
+        self.prev_collisoin=[]
 
         # Spawn initializations
         # TODO: This is a hacky fix because the reset function seems to be called on init as well.
@@ -170,12 +175,30 @@ class ROARppoEnvE2E(ROAREnv):
             self.current_hs = self.speed
 
         action = action.reshape((-1))
-        throttle_minus_braking = action[0]
+        self.prev_action=np.array(action)
+        # decision=action[3]
+        # # if decision<-2: #turning mode
+        # #     throttle = (action[0] + 1.5) / 2 + 1
+        # #     # if action[1]>=5:
+        # #     #     action[1]=5.0
+        # #     # if action[1]<=-5:
+        # #     #     action[1]=-5.0
+        # #     steering = action[1]/10
+        # #     braking=(action[2]-8)/2
+            
+        # # else: #speeding mode
+        # #     throttle = (action[0] + 1.5) / 2 + 1
+        # #     steering = action[1]/80
+        # #     if action[2]<=9:
+        # #         action[2]=9.0
+        # #     braking=(action[2]-9)/4
         
-        throttle = max(throttle_minus_braking,0)
-        braking = max(-throttle_minus_braking,0)
-        
-        steering=action[1]
+        # throttle = (action[0] + 1.5) / 2 + 1
+        # steering = action[1]/10/((decision+7)/10*7+1)
+        # # if action[2]<=8+(decision+7)/10:
+        # #         action[2]=8+(decision+7)/10
+        # # braking=(action[2]-8-(decision+7)/10)/2/((decision+7)/10*2+1)
+        # braking=(action[2]-8)/2
 
         # decision=action[0]+6
         # if decision<0:
@@ -201,11 +224,20 @@ class ROARppoEnvE2E(ROAREnv):
         # decision=action[0]
         # if decision<0:
         #     throttle=0
-        #     braking=abs(decision)
+        #     braking=abs(decision)*2
         # else:
-        #     throttle=decision
+        #     throttle=decision*2
         #     braking=0
         # steering=action[1]/2
+
+        # decision=action[0]
+        # if decision<0:
+        #     throttle=0
+        #     braking=abs(decision)**(0.2)
+        # else:
+        #     throttle=decision**(0.2)
+        #     braking=0
+        # steering=action[1]**3
             
         # throttle = (action[0] + 4.5) / 2
         # braking = (action[2] - 8.0)
@@ -217,6 +249,8 @@ class ROARppoEnvE2E(ROAREnv):
         #print(self.agent.kwargs)
 
         ob, reward, is_done, info = super(ROARppoEnvE2E, self).step(action)
+
+
         obs.append(ob)
         rewards.append(reward)
 
@@ -316,14 +350,22 @@ class ROARppoEnvE2E(ROAREnv):
                 reward += (self.agent.cross_reward - self.prev_cross_reward)*self.agent.interval*self.time_to_waypoint_ratio
         # print(self.agent.vehicle.velocity.x,self.agent.vehicle.velocity.y,self.agent.vehicle.velocity.z)
         # print(self.agent.bbox_list[self.agent.int_counter%len(self.agent.bbox_list)].dis(self.agent.vehicle.transform.location.x,self.agent.vehicle.transform.location.z),'----------------------------------')
-
+        # if not (self.agent.bbox_list[max(self.agent.int_counter - self.death_line_dis,1)].has_crossed(self.agent.vehicle.transform))[0]:
+        #     reward -= 100
+        #     # for i in range(20):
+        #     #     print((self.agent.bbox_list[i].has_crossed(self.agent.vehicle.transform))[0])
+        #     print('drive back')
+        #     self.crash_check = True
         if self.carla_runner.get_num_collision() > self.last_num_collision:
             reward -= self.carla_runner.world.collision_sensor.history[-1][-1]/10000
+            self.prev_collisoin=self.carla_runner.world.collision_sensor.history[-1][-1]/10000
             self.last_num_collision=self.carla_runner.get_num_collision()
             print(f'collision number: {self.carla_runner.get_num_collision()}------------------{self.carla_runner.world.collision_sensor.history[-1][-1]}')
             if self.carla_runner.world.collision_sensor.history[-1][-1]>10000:
                 reward -= 100
                 self.crash_check = True
+        else:
+            self.prev_collisoin=0
         # print(f'{self.carla_runner.get_num_collision()}')
         # print(self.agent.bbox_list[self.agent.int_counter%len(self.agent.bbox_list)].get_directional_velocity(self.agent.vehicle.velocity.x,self.agent.vehicle.velocity.y),'----------------------------------')
         # print(self.agent.vehicle.velocity.x,self.agent.vehicle.velocity.y)
@@ -334,7 +376,7 @@ class ROARppoEnvE2E(ROAREnv):
                 print('stopped')
                 self.crash_check = True
         else:
-            self.stopped_counter = 0
+            self.stopped_counter =0
 
         
 
@@ -388,26 +430,40 @@ class ROARppoEnvE2E(ROAREnv):
             return map_list
 
         else:
-            data = self.agent.occupancy_map.get_map(transform=self.agent.vehicle.transform,
-                                                    view_size=(CONFIG["x_res"], CONFIG["y_res"]),
-                                                    arbitrary_locations=self.agent.bbox.get_visualize_locs(),
-                                                    arbitrary_point_value=self.agent.bbox.get_value(),
-                                                    vehicle_velocity=self.agent.vehicle.velocity,
-                                                    # rotate=self.agent.bbox.get_yaw()
-                                                    )
-            # data = cv2.resize(occu_map, (CONFIG["x_res"], CONFIG["y_res"]), interpolation=cv2.INTER_AREA)
-            #cv2.imshow("Occupancy Grid Map", cv2.resize(np.float32(data), dsize=(500, 500)))
+            wall_list=self.agent.occupancy_map.get_wall_series(transform=self.agent.vt_queue[-1],magnitude=WALL_MAGNITUDES,
+                                                    view_size=(CONFIG["x_res"], CONFIG["y_res"]))
+            # obs=[]
+            # yaw=self.agent.vt_queue[-1].rotation.yaw
+            # roll=self.agent.vt_queue[-1].rotation.roll
+            # pitch=self.agent.vt_queue[-1].rotation.pitch
+            # obs.append(roll)
+            # obs.append(pitch)
+            # obs=np.array(obs)
+            rotation=self.agent.vt_queue[-1].rotation.to_array()
+            speed=self.agent.vehicle.velocity.to_array()
+            acceleration=self.agent.acceleration.to_array()
+            angular_v=self.agent.angular_v.to_array()
 
-            # data_view=np.sum(data,axis=2)
-            cv2.imshow("data", data) # uncomment to show occu map
-            cv2.waitKey(1)
-            # yaw_angle=self.agent.vehicle.transform.rotation.yaw
-            # velocity=self.agent.vehicle.get_speed(self.agent.vehicle)
-            # data[0,0,2]=velocity
-            data_input=data.copy()
-            data_input[data_input==1]=-10
-            return data_input  # height x width x 3 array
-    #3location 3 rotation 3velocity 20 waypoline locations 20 wayline rewards
+            target=self.agent.bbox_list[self.agent.int_counter%len(self.agent.bbox_list)]
+            target_yaw=target.get_yaw()
+            target_dis=target.dis(self.agent.vehicle.transform.location.x,self.agent.vehicle.transform.location.z)
+            # target_eq=target.eq(self.agent.vehicle.transform.location.x,self.agent.vehicle.transform.location.z)
+            reward_line=np.array([target_yaw,target_dis]).flatten()
+
+            obs=np.concatenate([rotation/180,speed/200,acceleration/5,angular_v/np.pi,reward_line/10,self.prev_action])#,np.array(self.prev_collisoin)])
+            # print(f"obs shape {obs.shape}")
+
+            target_shape = np.array(wall_list).shape
+            # print(f"target shape {target_shape}")
+            tmp=np.zeros((target_shape[1], target_shape[2]))
+            # print(f"tmp shape {tmp.shape}")
+            tmp[0, : len(obs)] = obs
+            map_list = np.zeros((target_shape[0] + 1, target_shape[1], target_shape[2]))   
+            map_list[:2,:] = np.array(wall_list)
+            map_list[2] = tmp
+            # print(f"observation shape {map_list.shape}")
+            return map_list
+
 
     def reset(self) -> Any:
         self.crash_check = False
