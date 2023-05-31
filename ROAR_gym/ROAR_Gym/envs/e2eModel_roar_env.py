@@ -42,8 +42,8 @@ class ROARppoEnvE2E(ROAREnv):
         # high=np.array([-1.5, 10.0, 10.0,3.0])
         # low=np.array([-7, -10.0])
         # high=np.array([-1.5, 10.0])
-        low=np.array([-1.5, -2.0])
-        high=np.array([-0.5, 2.0])
+        low=np.array([-1, -1.0])
+        high=np.array([1, 1.0])
         # low=np.array([-1, -2.0])
         # high=np.array([1, 2.0])
         self.mode=mode
@@ -205,23 +205,23 @@ class ROARppoEnvE2E(ROAREnv):
         #     braking=0
         # steering=action[1]/10
 
-        decision=action[0]+1
-        if decision<0:
-            throttle=0
-            braking=abs(decision)*2
-        else:
-            throttle=decision*2
-            braking=0
-        steering=action[1]/2
-
-        # decision=action[0]
+        # decision=action[0]+1
         # if decision<0:
         #     throttle=0
-        #     braking=abs(decision)
+        #     braking=abs(decision)*2
         # else:
-        #     throttle=decision
+        #     throttle=decision*2
         #     braking=0
         # steering=action[1]/2
+
+        decision=action[0]
+        if decision<0:
+            throttle=0
+            braking=abs(decision)**(0.2)
+        else:
+            throttle=decision**(0.2)
+            braking=0
+        steering=action[1]**3
             
         # throttle = (action[0] + 4.5) / 2
         # braking = (action[2] - 8.0)
@@ -343,8 +343,8 @@ class ROARppoEnvE2E(ROAREnv):
         #     print('drive back')
         #     self.crash_check = True
         if self.carla_runner.get_num_collision() > self.last_num_collision:
-            reward -= self.carla_runner.world.collision_sensor.history[-1][-1]/100000
-            self.prev_collisoin=self.carla_runner.world.collision_sensor.history[-1][-1]/100000
+            reward -= self.carla_runner.world.collision_sensor.history[-1][-1]/10000
+            self.prev_collisoin=self.carla_runner.world.collision_sensor.history[-1][-1]/10000
             self.last_num_collision=self.carla_runner.get_num_collision()
             print(f'collision number: {self.carla_runner.get_num_collision()}------------------{self.carla_runner.world.collision_sensor.history[-1][-1]}')
             if self.carla_runner.world.collision_sensor.history[-1][-1]>10000:

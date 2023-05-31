@@ -443,7 +443,7 @@ class AutoRacingNet(BaseFeaturesExtractor):
             layer_init(nn.Conv2d(64, 64, 3, stride=1)),
             nn.ReLU(),
             nn.Flatten(),
-            layer_init(nn.Linear(3136, self.CNN_channel)),
+            # layer_init(nn.Linear(3136, self.CNN_channel)),
         )
 
         self.FCN = nn.Sequential(
@@ -454,7 +454,9 @@ class AutoRacingNet(BaseFeaturesExtractor):
             layer_init(nn.Linear(64, self.FCN_channel)),
         )
 
-        self.lstm = nn.LSTM(input_size = self.FCN_channel + self.CNN_channel, hidden_size = 128, num_layers = 1)
+
+
+        self.lstm = nn.LSTM(input_size = 3136 + 16, hidden_size = 512, num_layers = 1)
         self.fc = nn.Linear(self.lstm.hidden_size, self.lstm.hidden_size)
         self.fc2 = nn.Linear(self.lstm.hidden_size, features_dim)
       
@@ -470,10 +472,13 @@ class AutoRacingNet(BaseFeaturesExtractor):
         print(f"map shape {occupancy_map.shape}")
         #print(self.info_list.shape)
         out1 = self.CNN(occupancy_map)
-        out2 = self.FCN(info_list)
+        # out2 = self.FCN(info_list)
+        out2 = info_list
+        
         joint_result = th.cat((out1, out2), dim=1)
+        
         lstm_output, _ = self.lstm(joint_result)
-        output = self.fc2(nn.ReLU(self.fc(lstm_output)))
+        output = self.fc2(F.relu(self.fc(lstm_output)))
         return output
 
 

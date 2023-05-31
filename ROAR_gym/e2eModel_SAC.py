@@ -182,7 +182,8 @@ def main(pass_num):
     policy_kwargs = dict(
         features_extractor_class=AutoRacingNet,
         #features_extractor_class=Atari_PPO_Adapted_CNN,
-        features_extractor_kwargs=dict(features_dim=256))
+        features_extractor_kwargs=dict(features_dim=256),
+        use_sde=True)
 
     # training kwargs for SAC init
     training_kwargs = SAC_params
