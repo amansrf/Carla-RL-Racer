@@ -169,6 +169,9 @@ class ROARppoEnvE2E(ROAREnv):
         obs = []
         rewards = []
         self.steps += 1
+        self.speed = self.agent.vehicle.get_speed(self.agent.vehicle)
+        if self.speed > self.current_hs:
+            self.current_hs = self.speed
 
         action = action.reshape((-1))
         self.prev_action=np.array(action)
@@ -217,11 +220,14 @@ class ROARppoEnvE2E(ROAREnv):
         decision=action[0]
         if decision<0:
             throttle=0
-            braking=abs(decision)**(0.2)
+            braking=abs(decision)
         else:
-            throttle=decision**(0.2)
+            if self.speed>40:
+                throttle=0 
+            else:
+                throttle=decision
             braking=0
-        steering=action[1]**3
+        steering=action[1]
             
         # throttle = (action[0] + 4.5) / 2
         # braking = (action[2] - 8.0)
@@ -242,9 +248,7 @@ class ROARppoEnvE2E(ROAREnv):
         self.frame_reward = sum(rewards)
         self.ep_rewards += sum(rewards)
 
-        self.speed = self.agent.vehicle.get_speed(self.agent.vehicle)
-        if self.speed > self.current_hs:
-            self.current_hs = self.speed
+
 
         if is_done:
             self.wandb_logger()
