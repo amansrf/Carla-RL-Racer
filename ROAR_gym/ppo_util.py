@@ -477,11 +477,11 @@ class AutoRacingNet(BaseFeaturesExtractor):
         out2 = info_list
         
         joint_result = th.cat((out1, out2), dim=1)
-        normed_result = self.layernorm(joint_result)
+        # normed_result = self.layernorm(joint_result)
         if self.h_n is None or self.c_n is None:
-            lstm_output, (self.h_n, self.c_n) = self.lstm(normed_result)
+            lstm_output, (self.h_n, self.c_n) = self.lstm(joint_result)
         else:
-            lstm_output, (self.h_n, self.c_n) = self.lstm(normed_result, (self.h_n, self.c_n))
+            lstm_output, (self.h_n, self.c_n) = self.lstm(joint_result, (self.h_n, self.c_n))
         output = self.fc2(F.relu(self.fc(lstm_output)))
 
         return output
