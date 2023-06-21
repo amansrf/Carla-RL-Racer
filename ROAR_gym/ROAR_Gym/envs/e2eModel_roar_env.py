@@ -16,6 +16,7 @@ from gym.spaces import Discrete, Box
 import cv2
 import wandb
 import skimage.measure
+import random
 
 # imports for reading and writing json config files
 from ROAR_gym.utility import json_read_write, next_spawn_point
@@ -347,7 +348,7 @@ class ROARppoEnvE2E(ROAREnv):
         #     print('drive back')
         #     self.crash_check = True
         if self.carla_runner.get_num_collision() > self.last_num_collision:
-            reward -= self.carla_runner.world.collision_sensor.history[-1][-1]/10000
+            reward -= self.carla_runner.world.collision_sensor.history[-1][-1]/git
             self.prev_collisoin=self.carla_runner.world.collision_sensor.history[-1][-1]/10000
             self.last_num_collision=self.carla_runner.get_num_collision()
             print(f'collision number: {self.carla_runner.get_num_collision()}------------------{self.carla_runner.world.collision_sensor.history[-1][-1]}')
@@ -481,7 +482,11 @@ class ROARppoEnvE2E(ROAREnv):
         self.agent.kwargs["control"] = VehicleControl(throttle=1.0,
                                                             steering=0.0,
                                                             braking=0.0)
-        for _ in range(80):
+        
+
+        empty_frames = random.randrange(80,180)
+
+        for _ in range(empty_frames):
             # print('step '+str(self.steps))
             super(ROARppoEnvE2E, self).step(None)
             self.steps+=1

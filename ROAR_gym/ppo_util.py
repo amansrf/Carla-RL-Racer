@@ -438,10 +438,8 @@ class AutoRacingNet(BaseFeaturesExtractor):
         self.CNN = nn.Sequential(
             layer_init(nn.Conv2d(channels - 1, 32, 8, stride=4)),
             nn.ReLU(),
-            nn.Dropout(p=0.3),
             layer_init(nn.Conv2d(32, 64, 4, stride=2)),
             nn.ReLU(),
-            nn.Dropout(p=0.3),
             layer_init(nn.Conv2d(64, 64, 3, stride=1)),
             nn.ReLU(),
             nn.Flatten(),
