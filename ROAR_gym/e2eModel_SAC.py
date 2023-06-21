@@ -185,7 +185,7 @@ def main(pass_num):
         features_extractor_kwargs=dict(features_dim=256),
         use_sde=True,
         normalize_images=False,
-        share_features_extractor=True)
+        share_features_extractor=False)
 
     # training kwargs for SAC init
     training_kwargs = SAC_params

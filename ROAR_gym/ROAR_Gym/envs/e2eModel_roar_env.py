@@ -369,9 +369,6 @@ class ROARppoEnvE2E(ROAREnv):
         else:
             self.stopped_counter =0
 
-        
-
-
         # log prev info for next reward computation
         self.prev_speed = Vehicle.get_speed(self.agent.vehicle)
         self.prev_cross_reward = self.agent.cross_reward
