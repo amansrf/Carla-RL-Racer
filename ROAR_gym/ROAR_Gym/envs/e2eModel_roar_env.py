@@ -348,7 +348,7 @@ class ROARppoEnvE2E(ROAREnv):
         #     print('drive back')
         #     self.crash_check = True
         if self.carla_runner.get_num_collision() > self.last_num_collision:
-            reward -= self.carla_runner.world.collision_sensor.history[-1][-1]/git
+            reward -= self.carla_runner.world.collision_sensor.history[-1][-1]/10000
             self.prev_collisoin=self.carla_runner.world.collision_sensor.history[-1][-1]/10000
             self.last_num_collision=self.carla_runner.get_num_collision()
             print(f'collision number: {self.carla_runner.get_num_collision()}------------------{self.carla_runner.world.collision_sensor.history[-1][-1]}')
@@ -373,7 +373,7 @@ class ROARppoEnvE2E(ROAREnv):
         # log prev info for next reward computation
         self.prev_speed = Vehicle.get_speed(self.agent.vehicle)
         self.prev_cross_reward = self.agent.cross_reward
-        return reward
+        return reward/20
 
     def _get_obs(self) -> np.ndarray:
         if mode=='baseline':

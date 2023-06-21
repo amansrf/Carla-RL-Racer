@@ -64,7 +64,7 @@ PPO_params = dict(
   n_steps = 256 * misc_params["run_fps"],#1024
   batch_size=256,  # mini_batch_size = 256?
   # n_epochs=10,
-  gamma=1,  # rec range .9 - .99 0.999997
+  gamma=0.97  # rec range .9 - .99 0.999997
   ent_coef=.00,  # rec range .0 - .01
   # gae_lambda=0.95,
   # clip_range_vf=None,
@@ -88,7 +88,7 @@ SAC_params = dict(
   # n_steps = misc_params["run_fps"],#1024
   ent_coef="auto",
   target_entropy="auto",
-  gamma=0.99,
+  gamma=0.97,
   use_sde=True,
   sde_sample_freq=5*misc_params["run_fps"],
   buffer_size=256_000, #default 1_000_000,
