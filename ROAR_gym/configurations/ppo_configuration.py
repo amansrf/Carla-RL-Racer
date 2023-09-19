@@ -10,8 +10,8 @@ sys.path.append(Path(os.getcwd()).parent.as_posix())
 misc_params = {
   "env_name": 'roar-e2e-ppo-v0',
   "run_fps": 32,  # TODO Link to the environment RUN_FPS
-  "model_directory": Path("./output/random_empty_frames1"),
-  "run_name": "random_empty_frames1",
+  "model_directory": Path("./output/tuned_reward5"),
+  "run_name": "tuned_reward5",
   "total_timesteps": int(1e6),#1e6
 }
 
@@ -60,7 +60,7 @@ wandb_saves = {
 }
 
 PPO_params = dict(
-  learning_rate = 0.00003,  # be smaller 2.5e-4
+  learning_rate = 5e-4/1024,  # be smaller 2.5e-4
   n_steps = 256 * misc_params["run_fps"],#1024
   batch_size=256,  # mini_batch_size = 256?
   # n_epochs=10,

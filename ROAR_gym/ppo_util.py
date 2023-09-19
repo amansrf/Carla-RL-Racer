@@ -454,7 +454,7 @@ class AutoRacingNet(BaseFeaturesExtractor):
             layer_init(nn.Linear(64, self.FCN_channel)),
         )
         
-        self.layernorm = nn.LayerNorm()
+        #self.layernorm = nn.LayerNorm()
         self.h_n = None
         self.c_n = None
         self.lstm = nn.LSTM(input_size = 3136 + 16, hidden_size = 512, num_layers = 1)
@@ -477,7 +477,7 @@ class AutoRacingNet(BaseFeaturesExtractor):
         out2 = info_list
         
         joint_result = th.cat((out1, out2), dim=1)
-        joint_result = self.layernorm(joint_result)
+        #joint_result = self.layernorm(joint_result)
         if self.h_n is None or self.c_n is None:
             lstm_output, (self.h_n, self.c_n) = self.lstm(joint_result)
         else:
