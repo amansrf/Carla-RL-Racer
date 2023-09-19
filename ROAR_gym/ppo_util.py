@@ -438,8 +438,10 @@ class AutoRacingNet(BaseFeaturesExtractor):
         self.CNN = nn.Sequential(
             layer_init(nn.Conv2d(channels - 1, 32, 8, stride=4)),
             nn.ReLU(),
+            nn.Dropout(p=0.3),
             layer_init(nn.Conv2d(32, 64, 4, stride=2)),
             nn.ReLU(),
+            nn.Dropout(p=0.3),
             layer_init(nn.Conv2d(64, 64, 3, stride=1)),
             nn.ReLU(),
             nn.Flatten(),
@@ -453,16 +455,24 @@ class AutoRacingNet(BaseFeaturesExtractor):
             nn.ReLU(),
             layer_init(nn.Linear(64, self.FCN_channel)),
         )
+<<<<<<< HEAD
 
 
         self.layernorm = nn.LayerNorm(3136 + 16)
+=======
+        
+        self.layernorm = nn.LayerNorm()
+>>>>>>> a1b7bc5e2ef62e46856fa21ba06dfaf90288393e
         self.h_n = None
         self.c_n = None
         self.lstm = nn.LSTM(input_size = 3136 + 16, hidden_size = 512, num_layers = 1)
         self.fc = nn.Linear(self.lstm.hidden_size, self.lstm.hidden_size)
         self.fc2 = nn.Linear(self.lstm.hidden_size, features_dim)
         self.i = 0
+<<<<<<< HEAD
       
+=======
+>>>>>>> a1b7bc5e2ef62e46856fa21ba06dfaf90288393e
 
 
     def forward(self, observations: th.Tensor) -> th.Tensor:
@@ -479,12 +489,17 @@ class AutoRacingNet(BaseFeaturesExtractor):
         out2 = info_list
         
         joint_result = th.cat((out1, out2), dim=1)
+<<<<<<< HEAD
         # normed_result = self.layernorm(joint_result)
+=======
+        joint_result = self.layernorm(joint_result)
+>>>>>>> a1b7bc5e2ef62e46856fa21ba06dfaf90288393e
         if self.h_n is None or self.c_n is None:
             lstm_output, (self.h_n, self.c_n) = self.lstm(joint_result)
         else:
             lstm_output, (self.h_n, self.c_n) = self.lstm(joint_result, (self.h_n, self.c_n))
         output = self.fc2(F.relu(self.fc(lstm_output)))
+
         return output
 
 

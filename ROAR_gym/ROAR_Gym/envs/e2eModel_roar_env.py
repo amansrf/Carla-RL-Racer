@@ -170,7 +170,10 @@ class ROARppoEnvE2E(ROAREnv):
         rewards = []
         self.steps += 1
         self.speed = self.agent.vehicle.get_speed(self.agent.vehicle)
+<<<<<<< HEAD
         print(self.speed)
+=======
+>>>>>>> a1b7bc5e2ef62e46856fa21ba06dfaf90288393e
         if self.speed > self.current_hs:
             self.current_hs = self.speed
 
@@ -230,6 +233,7 @@ class ROARppoEnvE2E(ROAREnv):
         #     braking=0
         # steering=action[1]/2
 
+<<<<<<< HEAD
         # decision=action[0]
         # if decision<0:
         #     throttle=0
@@ -238,6 +242,19 @@ class ROARppoEnvE2E(ROAREnv):
         #     throttle=decision**(0.2)
         #     braking=0
         # steering=action[1]**3
+=======
+        decision=action[0]
+        if decision<0:
+            throttle=0
+            braking=abs(decision)
+        else:
+            if self.speed>40:
+                throttle=0 
+            else:
+                throttle=decision
+            braking=0
+        steering=action[1]
+>>>>>>> a1b7bc5e2ef62e46856fa21ba06dfaf90288393e
             
         # throttle = (action[0] + 4.5) / 2
         # braking = (action[2] - 8.0)
@@ -258,7 +275,11 @@ class ROARppoEnvE2E(ROAREnv):
         self.frame_reward = sum(rewards)
         self.ep_rewards += sum(rewards)
 
+<<<<<<< HEAD
         
+=======
+
+>>>>>>> a1b7bc5e2ef62e46856fa21ba06dfaf90288393e
 
         if is_done:
             self.wandb_logger()
@@ -377,9 +398,6 @@ class ROARppoEnvE2E(ROAREnv):
                 self.crash_check = True
         else:
             self.stopped_counter =0
-
-        
-
 
         # log prev info for next reward computation
         self.prev_speed = Vehicle.get_speed(self.agent.vehicle)

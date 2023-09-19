@@ -1,1 +1,5 @@
+<<<<<<< HEAD
 {"run_id": "use_sde", "name": "", "project_name": "Major_Map", "entity": "roar"}
+=======
+{"run_id": "dropout_cnn", "name": "", "project_name": "Major_Map_SAC", "entity": "roar"}
+>>>>>>> a1b7bc5e2ef62e46856fa21ba06dfaf90288393e
