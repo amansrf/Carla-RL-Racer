@@ -10,8 +10,8 @@ sys.path.append(Path(os.getcwd()).parent.as_posix())
 misc_params = {
   "env_name": 'roar-e2e-ppo-v0',
   "run_fps": 32,  # TODO Link to the environment RUN_FPS
-  "model_directory": Path("./output/PPOspeedLimit2"),
-  "run_name": "PPOspeedLimit2",
+  "model_directory": Path("./output/use_sde"),
+  "run_name": "use_sde",
   "total_timesteps": int(1e6),#1e6
 }
 

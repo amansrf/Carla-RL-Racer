@@ -42,8 +42,8 @@ class ROARppoEnvE2E(ROAREnv):
         # high=np.array([-1.5, 10.0, 10.0,3.0])
         # low=np.array([-7, -10.0])
         # high=np.array([-1.5, 10.0])
-        low=np.array([-1, -1.0])
-        high=np.array([1, 1.0])
+        low=np.array([-1.5, -2.0])
+        high=np.array([-0.5, 2.0])
         # low=np.array([-1, -2.0])
         # high=np.array([1, 2.0])
         self.mode=mode
@@ -214,7 +214,7 @@ class ROARppoEnvE2E(ROAREnv):
             throttle=0
             braking=abs(decision)*2
         else:
-            if self.speed<=60:
+            if self.speed<=80:
                 throttle=decision*2
             else:
                 throttle=0
@@ -462,6 +462,9 @@ class ROARppoEnvE2E(ROAREnv):
             map_list[:2,:] = np.array(wall_list)
             map_list[2] = tmp
             # print(f"observation shape {map_list.shape}")
+            image=np.hstack(map_list)
+            cv2.imshow("data", image) # uncomment to show occu map
+            cv2.waitKey(1)
             return map_list
 
 
